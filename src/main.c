@@ -5,16 +5,16 @@
 #include "commands/core.h"
 
 #define MAX_VAR_LENGTH 256
-#define BASE_DIR "/home"
 #define LIB_DIR_NAME "paclibs"
 
 static void init_lib(char * str) {
-	char * username_env = getenv("USER");
-	char * username;
-	if (username_env == NULL) username = "root";
-	else username = username_env;
+	char * home = getenv("HOME");
+	if (home == NULL) {
+		fprintf(stderr, "Cannot find HOME env variable.");
+		return;
+	}
 
-	snprintf(str, MAX_VAR_LENGTH - 1, "%s/%s/%s", BASE_DIR, username, LIB_DIR_NAME);
+	snprintf(str, MAX_VAR_LENGTH - 1, "%s/%s", home, LIB_DIR_NAME);
 }
 
 static void help_page(struct arg_input args[], int size) {
