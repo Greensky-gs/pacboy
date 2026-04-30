@@ -10,6 +10,7 @@
 #include "../cl/string_cl.h"
 #include "../cl/pairs.h"
 #include "../aux/tools.h"
+#include "sync.h"
 
 int is_sys(char * input) {
 	if (input[0] == 0) return 0;
@@ -353,5 +354,69 @@ int display_info(char * libspath, char * name) {
 	destroy_array(parsed_args, size);
 	free(configpath);
 	free(libpath);
+	return 0;
+}
+
+static int prompt_configuration(char * name, char * default_value, char * result) {
+	printf("%s [\x1b[90m%s\x1b[0m]: ", name, default_value == NULL ? "" : default_value);
+	fflush(stdout);
+
+	if (fgets(result, CONFIG_MAX_STR_SIZE - 1, stdin) == NULL) {
+		perror("fgets");
+		return -1;
+	}
+
+	if (*result == 0) return 0;
+	return 1;
+}
+
+int update_config(psyncconfig config, char * save_path) {
+	char new_url[CONFIG_MAX_STR_SIZE] = {0};
+	int changes = 0;
+
+	if (prompt_configuration("new repo url", config->repo_url, new_url) == 1) {
+		int i = 0;
+		while (i < CONFIG_MAX_STR_SIZE) {
+			config->repo_url[i] = new_url[i] == '\n' ? 0 : new_url[i];
+			i++;
+		}
+		changes++;
+	}
+
+	if (changes > 0) save_sync_config_file(save_path, config);
+	return 1;
+}
+
+int sync_database(psyncconfig config, char * files) {
+	char * pre_rmargs[] = { "rm", "-rf", files, NULL };
+	int res = exec_command(pre_rmargs);
+
+	if (res != 0) {
+		fprintf(stderr, "Something went wrong. Code: %d\n", res);
+		return 1;
+	}
+
+	printf("\x1b[35mCloning from %s...\x1b[0m\n", config->repo_url);
+
+	char * args[] = { "git", "clone", "-b", "mirror", "--single-branch", config->repo_url, files, NULL };
+	res = exec_command(args);
+	if (res != 0) {
+		fprintf(stderr, "Something went wrong. Code: %d\n", res);
+		return 1;
+	}
+
+	char dotgit[PATH_MAX];
+	snprintf(dotgit, PATH_MAX - 1, "%s/%s", files, ".git");
+
+	printf("\x1b[35mRemoving \x1b[90m.git\x1b[35m folder...\x1b[0m\n");
+	char * rmargs[] = { "rm", "-rf", dotgit, NULL };
+	res = exec_command(rmargs);
+
+	if (res != 0) {
+		fprintf(stderr, "Something went wrong. Code: %d\n", res);
+		return 1;
+	}
+
+	printf("\x1b[32mDone\x1b[0m\n");
 	return 0;
 }

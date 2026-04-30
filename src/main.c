@@ -3,18 +3,29 @@
 #include "aux/args.h"
 #include "commands/commands.h"
 #include "commands/core.h"
+#include "commands/sync.h"
 
 #define MAX_VAR_LENGTH 256
-#define BASE_DIR "/home"
 #define LIB_DIR_NAME "paclibs"
+#define CONFIG_FILE_NAME ".config/pacboy"
 
 static void init_lib(char * str) {
-	char * username_env = getenv("USER");
-	char * username;
-	if (username_env == NULL) username = "root";
-	else username = username_env;
+	char * home = getenv("HOME");
+	if (home == NULL) {
+		fprintf(stderr, "Cannot find HOME env variable.");
+		return;
+	}
 
-	snprintf(str, MAX_VAR_LENGTH - 1, "%s/%s/%s", BASE_DIR, username, LIB_DIR_NAME);
+	snprintf(str, MAX_VAR_LENGTH - 1, "%s/%s", home, LIB_DIR_NAME);
+}
+static void init_conf(char * str) {
+	char * home = getenv("HOME");
+	if (home == NULL) {
+		fprintf(stderr, "Cannot find HOME env variable");
+		return;
+	}
+
+	snprintf(str, MAX_VAR_LENGTH - 1, "%s/%s", home, CONFIG_FILE_NAME);
 }
 
 static void help_page(struct arg_input args[], int size) {
@@ -50,28 +61,41 @@ int main(int argc, char * argv[]) {
 		{ "--deps", "Specify a dependencies list, by comma-separated values", String, 0, 0, NULL },
 		{ "--include", "Specify dependencies headers, by comma-separated pairs (eg: \"function1=string.h,function2=src/test.h\" or \"*=thing.h\"", String, 0, 0, NULL },
 		{ "-I", "Display informations about a library, the first given argument", Presence, 0, 0, NULL },
+		{ "--change-config", "Open the interactive pacboy configuration editor", Presence, 0, 0, NULL },
+		{ "-P", "Pull changes from the database, if it exists. It overwrites any local changes", Presence, 0, 0, NULL }
 	};
 	int size = sizeof(arguments) / sizeof(struct arg_input);
 
 	find_all(argc, argv, arguments, size);
 
-	char libs_path[MAX_VAR_LENGTH] = {0};
+	char libs_path[MAX_VAR_LENGTH]   = {0};
+	char config_path[MAX_VAR_LENGTH] = {0};
+
+	psyncconfig syncconfig;
+
+	init_conf(config_path);
 	init_lib(libs_path);
+
+	if ((syncconfig = read_sync_config_file(config_path, NULL)) == NULL) syncconfig = default_config();
 	setup(libs_path);
 
 	if (arguments[3].found || arguments[4].found) {
 		help_page(arguments, size);
+		free(syncconfig);
 		return 0;
 	}
 
 	if (arguments[0].found) {
 		display_list(libs_path);
+		free(syncconfig);
 		return 0;
 	}
 	if (arguments[1].found) {
+		free(syncconfig);
 		return generate_config(arguments[2].str_result, arguments[5].str_result);
 	}
 	if (arguments[7].found) {
+		free(syncconfig);
 		if (argc < 3) {
 			printf("You need to specify a library to display.\n");
 			return 1;
@@ -79,11 +103,23 @@ int main(int argc, char * argv[]) {
 
 		return display_info(libs_path, argv[1]);
 	}
+	if (arguments[8].found) {
+		int res = update_config(syncconfig, config_path);
+		free(syncconfig);
+		return res;
+	}
+	if (arguments[9].found) {
+		int res = sync_database(syncconfig, libs_path);
+		free(syncconfig);
+		return res;
+	}
 
 	if (argc < 3) {
 		help_page(arguments, size);
+		free(syncconfig);
 		return 0;
 	}
 
+	free(syncconfig);
 	return install(libs_path, argv[1], argv[2], arguments[6].str_result);
 }
