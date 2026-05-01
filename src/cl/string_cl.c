@@ -25,6 +25,19 @@ void stringcl_destroy(chained_cell * list) {
 	}
 	*list = NULL;
 }
+void stringcl_destroy_nofree(chained_cell * list) {
+	if (list == NULL) return;
+
+	chained_cell current = *list;
+	while (current != NULL) {
+		chained_cell next = current->next;
+
+		free(current);
+
+		current = next;
+	}
+	*list = NULL;
+}
 unsigned long int stringcl_size(chained_cell list) {
 	unsigned long int size = 0;
 	chained_cell current = list;
@@ -129,4 +142,20 @@ void stringcl_foreach(chained_cell list, void * data, void callback(chained_cell
 		callback(current, data);
 		current = current->next;
 	}
+}
+
+char ** stringcl_to_array(chained_cell list, unsigned long * size) {
+	*size = stringcl_size(list);
+
+	char ** array;
+	if ((array = malloc(sizeof(char *) * *size)) == NULL) return NULL;
+
+	unsigned long i = 0;
+	while (i < *size) {
+		array[i] = list->value;
+		list = list->next;
+		i++;
+	}
+
+	return array;
 }

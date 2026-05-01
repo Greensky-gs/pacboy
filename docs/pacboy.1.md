@@ -33,17 +33,33 @@ The order of detecting modes is :
 
 Help mode will display help page, no option can alter the behavior of this mode.
 
-## Database
+## DATABASE
 
 In Database mode, it will simply list all the registered libraries. No option can modify the behavior of this mode
 
-## Configuration
+## CONFIGURATION
 
-In configuration mode, pacboy will generate a configuration file, with the given function names. You must give the function names in comma-separated list, using the `--deps` option, and you can redirect the output from *stdout* to `/path/to/dir/paquet.boy` by specifying `/path/to/dir` in the `-od` option (standing for **output directory**). Pacboy will automatically add the `/paquet.boy` at the end of the path
+In configuration mode, pacboy will generate a configuration file, with the given function names. You must give the function names in comma-separated list, using the `--deps` option, and you can redirect the output from *stdout* to `/path/to/dir/paquet.boy` by specifying `/path/to/dir` in the `-od` option (standing for **output directory**). Pacboy will automatically add the `/paquet.boy` at the end of the path.
+
+In order to specify the **features** of the paquet, you need to use `--features` in a comma-separated list of values. If some features require specific functions, specify them inside brackets ( `[]` ), in a comma-separated list of values. For more informations about features, refer the to the **FEATURES** section
 
     pacboy --generate-config -od ~/paclibs/args --deps "streq,parse_int"
     pacboy --generate-config --deps "streq"
     pacboy -od "./paclibs/string-chained-list" --deps "streq" --generate-config
+    pacboy --generate-config --deps "streq" --features "clone,comparison[ordcompare,eqcompare]"
+
+Pacboy can have configuration files for its libraries. It contains the dependencies. In pacboy, depencies are functions that the library expected in its C or H files, assumed it existed but never defined. The names inside the configuration file, below the `[deps]` are the functions the library is assuming are defined. An example of configuration file (*paquet.boy*) can be this :
+
+     [deps]
+     streq
+     disassemble_array
+     [features]
+     sync
+     async
+      - thread
+      - process
+
+In this example, the library is expecting the user to give the according H files for the function declaration. The `[features]` part concerns **FEATURES**
 
 ## INFORMATION
 
@@ -79,13 +95,16 @@ In installation mode, Pacboy looks for a folder in `~/paclibs`, given as the fir
     pacboy pyassembler ./src/assemblers/ --include "*=../aux/tools.h"
     pacboy args ./src/aux --include "streq=../aux/tools/string.h,parse_int=../aux/parsers/int.h"
 
-Pacboy can have configuration files for its libraries. It contains the dependencies. In pacboy, depencies are functions that the library expected in its C or H files, assumed it existed but never defined. The names inside the configuration file, below the `[deps]` are the functions the library is assuming are defined. An example of configuration file (*paquet.boy*) can be this :
+# FEATURES
 
-     [deps]
-     streq
-     disassemble_array
+Pacboy offers a features system, to filter the needs.
 
-In this example, the library is expecting the user to give the according H files for the function declaration.
+Basically, a feature is a folder in a library. For instance, a library having "tool.c" at the root, and "aux" as a folder at root, "aux" is considered a feature. Every folder at root is considered a feature, and every feature is a folder at root, so, for instance, in `./aux/parsers/`, **parsers** is not considered a feature
+
+A feature can have specific dependencies. In order to generate a config file with a feature needing dependencies, use the `--features` flag, followed by something like :
+`"feature_name[dependency_1,dependency_2,...]`. If a feature required no dependency, don't pass the brackets.
+
+To include features in installation, use the `--features` flag. It will automatically add the dependencies of the feature in the required dependencies needed to be passed in `--include`
 
 # OPTIONS
 
@@ -106,6 +125,8 @@ In this example, the library is expecting the user to give the according H files
 \--change-config : Enter the configuration mode
 
 -P : Pull the database from git.
+
+\--features : Specify the features, for either **INSTALLATION MODE**, or **CONFIGURATION MODE**. Refer to the according part of the manual for more information
 
 # RETURN VALUE
 

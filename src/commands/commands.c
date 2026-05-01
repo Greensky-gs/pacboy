@@ -6,11 +6,12 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include "commands.h"
-#include "core.h"
 #include "../cl/string_cl.h"
 #include "../cl/pairs.h"
 #include "../aux/tools.h"
-#include "sync.h"
+#include "../core/config.h"
+
+#define FREE_CONFIG(alloced, config) if (alloced) destroy_plib_config(config);
 
 int is_sys(char * input) {
 	if (input[0] == 0) return 0;
@@ -140,7 +141,45 @@ static chained_cell get_includes_list(char * includesb, char ** deps, int size, 
 	return list;
 }
 
-int install(char * path, char * name, char * dest, char * includes) {
+static char ** extract_features(char * input, int * size) {
+	char * work = strdup(input);
+	if (work == NULL) return NULL;
+
+	int count = 1;
+	int i = 0;
+	while (work[i] != 0) {
+		if (work[i] == ',') count++;
+		i++;
+	}
+	*size = count;
+
+	char ** array;
+	if ((array = malloc(sizeof(char *) * count)) == NULL) {
+		perror("malloc");
+		free(work);
+		return NULL;
+	}
+	i = 0;
+	int index = 0;
+	char * start = work;
+	while (work[i] != 0) {
+		if (work[i] == ',') {
+			work[i] = 0;
+			array[index] = start;
+			start = work + 1;
+		}
+		i++;
+	}
+	array[index] = start;
+
+	return array;
+}
+static void destroy_features_array(char ** arr) {
+	if (arr == NULL) return;
+	free(arr[0]);
+	free(arr);
+}
+int install(char * path, char * name, char * dest, char * includes, char * features) {
 	int totalsize = strlen(path) + strlen(name) + 2;
 	char * libpath;
 	if ((libpath = malloc(totalsize)) == NULL) {
@@ -164,9 +203,6 @@ int install(char * path, char * name, char * dest, char * includes) {
 		free(absolutepath);
 		return 1;
 	}
-	char ** parsed_deps;
-	int size = 0;
-
 	char * configpath;
 	if ((configpath = malloc(strlen(libpath) + strlen("paquet.boy") + 2)) == NULL) {
 		free(libpath);
@@ -178,57 +214,152 @@ int install(char * path, char * name, char * dest, char * includes) {
 	sprintf(configpath, "%s/paquet.boy", libpath);
 	char * config_existence_args[] = { "test", "-f", configpath, NULL };
 
+	plib_config config = NULL;
+	int alloced = 1;
 	if (exec_command(config_existence_args) == 0) {
-		parsed_deps = read_config_file(configpath, &size);
+		config = parse_config_file(configpath);
 		
-		if (parsed_deps == NULL && size == -1) {
+		if (config == NULL) {
 			printf("Something went wrong reading config file.\n");
 			free(libpath);
 			free(absolutepath);
 			free(configpath);
 			return 1;
 		}
+	} else {
+		struct lib_config_file default_config = {};
+
+		default_config.dependencies = NULL;
+		default_config.dependencies_count = 0;
+		default_config.features_count = 0;
+		default_config.features = NULL;
+
+		config = &default_config;
+		alloced = 0;
+	}
+	free(configpath);
+
+	char ** selected_features = NULL;
+	int selected_features_size = 0;
+	if (features != NULL && (selected_features = extract_features(features, &selected_features_size)) == NULL) {
+		fprintf(stderr, "Unable to extract features");
+		free(libpath);
+		free(absolutepath);
+		FREE_CONFIG(alloced, config);
+		return 1;
+	}
+	if (selected_features != NULL) {
+		int i = 0;
+		while (i < selected_features_size) {
+			int j = 0;
+			int valid = 0;
+			while (!valid && j < config->features_count) {
+				if (streq(selected_features[i], config->features[j]->name)) valid = 1;
+				j++;
+			}
+			if (!valid) {
+				fprintf(stderr, "Unknown feature : %s\n", selected_features[i]);
+
+				destroy_features_array(selected_features);
+				free(libpath);
+				free(absolutepath);
+				FREE_CONFIG(alloced, config);
+				return 1;
+			}
+			i++;
+		}
+	}
+	int updated = 0;
+	chained_cell required_deps = NULL;
+	if (config->dependencies_count > 0) {
+		int i = 0;
+		while (i < config->dependencies_count) {
+			if (!stringcl_exists(required_deps, config->dependencies[i])) {
+				stringcl_append(&required_deps, config->dependencies[i]);
+				updated = 1;
+			}
+			i++;
+		}
+	}
+
+	if (selected_features_size > 0) {
+		int i = 0;
+		while (i < selected_features_size) {
+			plib_feature feature = NULL;
+			int j = 0;
+			while (j < config->features_count && feature == NULL) {
+				if (streq(config->features[j]->name, selected_features[i])) feature = config->features[j];
+				j++;
+			}
+
+			j = 0;
+			while (feature->dependencies != NULL && feature->dependencies[j] != NULL) {
+				if (!stringcl_exists(required_deps, feature->dependencies[j])) {
+					stringcl_append(&required_deps, feature->dependencies[j]);
+					updated = 1;
+				}
+				j++;
+			}
+			i++;
+		}
 	}
 	chained_cell includes_list = NULL;
-	if (size > 0) {
+	if (updated && required_deps != NULL) {
 		if (includes == NULL) {
-			printf("Please specify the dependencies headers\n");
+			fprintf(stderr, "Please specify the dependencies headers\n");
 			free(libpath);
 			free(absolutepath);
-			free(configpath);
-			destroy_array(parsed_deps, size);
+			stringcl_destroy_nofree(&required_deps);
+			destroy_features_array(selected_features);
+			FREE_CONFIG(alloced, config);
 			return 1;
 		}
+
+		char ** deps_array;
+		unsigned long size;
+		if ((deps_array = stringcl_to_array(required_deps, &size)) == NULL) {
+			perror("stringcl_to_array");
+			fprintf(stderr, "Cannot convert required_deps to array");
+			free(libpath);
+			free(absolutepath);
+			stringcl_destroy_nofree(&required_deps);
+			destroy_features_array(selected_features);
+			FREE_CONFIG(alloced, config);
+			return 1;
+		}
+		stringcl_destroy_nofree(&required_deps);
+
 		int valid;
-		includes_list = get_includes_list(includes, parsed_deps, size, &valid);
+		includes_list = get_includes_list(includes, deps_array, size, &valid);
+		free(deps_array);
+
 		if (includes_list == NULL || !valid) {
-			printf("Please specify all the dependencies headers.\n  You can use \"*=somefile.h\"\n");
+			fprintf(stderr, "Please specify all the dependencies headers.\n  You can use \"*=somefile.h\"\n");
 			free(libpath);
 			free(absolutepath);
-			free(configpath);
-			destroy_array(parsed_deps, size);
+			destroy_features_array(selected_features);
+			FREE_CONFIG(alloced, config);
 			return 1;
 		}
+	} else {
+		stringcl_destroy_nofree(&required_deps);
 	}
 
-	if (size > 0) destroy_array(parsed_deps, size);
-
 	printf("Copying library \x1b[33m%s\x1b[0m into \x1b[93m%s\x1b[0m...\n", name, absolutepath);
-
-	int returncode = copy_rec(libpath, absolutepath, NULL, includes_list);
-
+	int returncode = copy_rec(libpath, absolutepath, NULL, includes_list, 0, selected_features, selected_features_size);
 	printf("Library \x1b[33m%s\x1b[0m copied\n", name);
 	
 	free(libpath);
 	free(absolutepath);
-	free(configpath);
+	destroy_features_array(selected_features);
 	stringcl_destroy(&includes_list);
+	FREE_CONFIG(alloced, config);
 	return returncode;
 }
 
-int generate_config(char * outputname, char * depstring) {
-	if (depstring == NULL) {
-		printf("No dependencies specified.\n  Use with \x1b[90m--deps \"first_function,second_function...\"\x1b[0m\n");
+int generate_config(char * outputname, char * depstring, char * featuresstring) {
+	if (depstring == NULL && featuresstring == NULL) {
+		printf("No dependencies/features specified.\n  Use with \x1b[90m--deps \"first_function,second_function...\" --features \"feature1,feature2[dep1,dep2]\"\x1b[0m\n");
 		return 1;
 	}
 	int fd = -1;
@@ -256,39 +387,93 @@ int generate_config(char * outputname, char * depstring) {
 		fd = STDOUT_FILENO;
 	}
 
-	char header[] = "[deps]\n";
-	write(fd, header, strlen(header));
+	if (depstring != NULL) {
+		char header[] = "[deps]\n";
+		write(fd, header, strlen(header));
 
-	int i = 0;
-	int start = 0;
-	int end = 0;
-	while (depstring[i] != 0) {
-		if (depstring[i] == ',') {
-			i++;
+		int i = 0;
+		int start = 0;
+		int end = 0;
+		while (depstring[i] != 0) {
+			if (depstring[i] == ',') {
+				i++;
 
-			end = i - 1;
+				end = i - 1;
 
-			write(fd, depstring + start, end - start);
-			start = end + 1;
+				write(fd, depstring + start, end - start);
+				start = end + 1;
 
 
-			write(fd, "\n", 1);
-		} else {
-			i++;
+				write(fd, "\n", 1);
+			} else {
+				i++;
+			}
 		}
+		end = i;
+
+		write(fd, depstring + start, end - start);
+		start = end + 1;
+
+		write(fd, "\n", 1);
 	}
-	end = i;
+	if (featuresstring != NULL) {
+		char features_header[] = "[features]\n";
+		write(fd, features_header, strlen(features_header));
 
-	write(fd, depstring + start, end - start);
-	start = end + 1;
+		int j = 0;
+		int feature_start = 0;
+		int feature_end = 0;
+		int writing_deps = 0;
+		while (featuresstring[j] != 0) {
+			if (featuresstring[j] == '[') {
+				if (writing_deps) {
+					fprintf(stderr, "unexpected format, aborting. This will result in a bad paquet file");
+					break;
+				}
+				j++;
+				feature_end = j - 1;
+				write(fd, featuresstring + feature_start, feature_end - feature_start);
+				feature_start = feature_end + 1;
+				writing_deps = 1;
+				write(fd, "\n", 1);
+			} else if (featuresstring[j] == ']') {
+				if (!writing_deps) {
+					fprintf(stderr, "unexpected format, aborting. This will result in a bad paquet file");
+					break;
+				}
+				writing_deps = 0;
+				j++;
+				feature_end = j - 1;
+				char before[] = " - ";
+				write(fd, before, 3);
+				write(fd, featuresstring + feature_start, feature_end - feature_start);
+				feature_start = feature_end + 1;
+			} else if (featuresstring[j] == ',') {
+				j++;
+				feature_end = j - 1;
+				if (writing_deps) {
+					char before[] = " - ";
+					write(fd, before, 3);
+				}
+				write(fd, featuresstring + feature_start, feature_end - feature_start);
+				write(fd, "\n", 1);
+				feature_start = feature_end + 1;
+			} else j++;
+		}
+		feature_end = j;
 
-
-	write(fd, "\n", 1);
+		write(fd, featuresstring + feature_start, feature_end - feature_start);
+		write(fd, "\n", 1);
+	}
 
 	if (fd != -1) close(fd);
 	return 0;
 }
 
+static void display_uniqcl(chained_cell cell, void * data) {
+	printf("%s=somefile.h", cell->value);
+	if (cell->next != NULL) printf(",");
+}
 int display_info(char * libspath, char * name) {
 	char * libpath;
 	if ((libpath = malloc(strlen(libspath) + strlen(name) + 2)) == NULL) {
@@ -323,35 +508,66 @@ int display_info(char * libspath, char * name) {
 		return 0;
 	}
 
-	int size = 0;
-	char ** parsed_args = read_config_file(configpath, &size);
-
-	if (parsed_args == NULL && size == -1) {
-		printf("Something went wrong reading the config file\n");
-
-		free(configpath);
-		free(libpath);
+	plib_config config;
+	if ((config = parse_config_file(configpath)) == NULL) {
+		perror("parse_config_file");
+		fprintf(stderr, "Incorrect read of config file");
 		return 1;
 	}
 
-	printf("Library name : \x1b[90m\x1b[4m%s\x1b[0m\nLibrary location : \x1b[94m%s\x1b[0m\nIt has \x1b[1m%d\x1b[0m functions requirements :\n", name, libpath, size);
-	int i = 0;
-	while (i < size) {
-		printf("    %s\n", parsed_args[i]);
-		i++;
+	printf("Library name : \x1b[90m\x1b[4m%s\x1b[0m\nLibrary location : \x1b[94m%s\x1b[0m\n", name, libpath);
+	if (config->dependencies_count > 0) {
+		printf("Functions requirements \x1b[90m(%d)\x1b[0m:\n", config->dependencies_count);
+
+		int i = 0;
+		while (i < config->dependencies_count) {
+			printf("    %s\n", config->dependencies[i]);
+			i++;
+		}
+	}
+	if (config->features_count > 0) {
+		printf("Features \x1b[90m(%d)\x1b[0m:\n", config->features_count);
+
+		int i = 0;
+		while (i < config->features_count) {
+			printf("    %s", config->features[i]->name);
+			if (config->features[i]->dependencies != NULL && config->features[i]->dependencies[0] != NULL) {
+				printf(" (requires following dependencies) :\n");
+
+				int j = 0;
+				while (config->features[i]->dependencies[j] != NULL) {
+					printf("        - %s\n", config->features[i]->dependencies[j]);
+					j++;
+				}
+			} else printf("\n");
+			i++;
+		}
 	}
 
-	printf("Include command : \x1b[90mpacboy %s ./ --include \"", name);
-	i = 0;
-	while (i < size) {
-		printf("%s=somefile.h", parsed_args[i]);
+	chained_cell uniq_deps = get_uniq_deps(config);
 
-		if (i != size - 1) printf(",");
-		i++;
+	printf("Include command : \x1b[90mpacboy %s ./", name);
+
+	if (uniq_deps != NULL) {
+		printf(" --include \"");
+
+		stringcl_foreach(uniq_deps, NULL, display_uniqcl);
+		printf("\"");
 	}
-	printf("\"\x1b[0m\n");
-	
-	destroy_array(parsed_args, size);
+	if (config->features_count > 0) {
+		int i = 0;
+		printf(" --features \"");
+		while (i < config->features_count) {
+			printf("%s", config->features[i]->name);
+			if (i != config->features_count - 1) printf(",");
+			i++;
+		}
+		printf("\"");
+	}
+	printf("\x1b[0m\n");
+
+	if (uniq_deps != NULL) stringcl_destroy_nofree(&uniq_deps);
+	destroy_plib_config(config);
 	free(configpath);
 	free(libpath);
 	return 0;

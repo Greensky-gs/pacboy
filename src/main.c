@@ -62,7 +62,8 @@ int main(int argc, char * argv[]) {
 		{ "--include", "Specify dependencies headers, by comma-separated pairs (eg: \"function1=string.h,function2=src/test.h\" or \"*=thing.h\"", String, 0, 0, NULL },
 		{ "-I", "Display informations about a library, the first given argument", Presence, 0, 0, NULL },
 		{ "--change-config", "Open the interactive pacboy configuration editor", Presence, 0, 0, NULL },
-		{ "-P", "Pull changes from the database, if it exists. It overwrites any local changes", Presence, 0, 0, NULL }
+		{ "-P", "Pull changes from the database, if it exists. It overwrites any local changes", Presence, 0, 0, NULL },
+		{ "--features", "Specify the features that must be included during installation", String, 0, 0, NULL }
 	};
 	int size = sizeof(arguments) / sizeof(struct arg_input);
 
@@ -92,7 +93,7 @@ int main(int argc, char * argv[]) {
 	}
 	if (arguments[1].found) {
 		free(syncconfig);
-		return generate_config(arguments[2].str_result, arguments[5].str_result);
+		return generate_config(arguments[2].str_result, arguments[5].str_result, arguments[10].str_result);
 	}
 	if (arguments[7].found) {
 		free(syncconfig);
@@ -121,5 +122,5 @@ int main(int argc, char * argv[]) {
 	}
 
 	free(syncconfig);
-	return install(libs_path, argv[1], argv[2], arguments[6].str_result);
+	return install(libs_path, argv[1], argv[2], arguments[6].str_result, arguments[10].str_result);
 }
