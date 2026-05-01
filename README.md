@@ -10,6 +10,10 @@ Then you run `pacboy <the name of the folder> <path/to/where/it/will/be/pasted>`
 
 The **content** of the folder will be copied, not the folder itself
 
+### Database
+
+Optionnally, you can use a database, which is a distant git repository containing the `~/paclibs` folder on a branch named **mirror**. You can configure this by running `apcboy --change-config` and entering your url, or mine if you just want a general database : [https://github.com/Greensky-gs/paclibs-database](https://github.com/Greensky-gs/paclibs-database). If you use mine, just make sure you run `pacboy -P` to get the latest changes
+
 ## Installation
 
 If you want to install it for yourself, you will first need :
