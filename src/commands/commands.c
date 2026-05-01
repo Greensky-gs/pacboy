@@ -358,8 +358,8 @@ int install(char * path, char * name, char * dest, char * includes, char * featu
 }
 
 int generate_config(char * outputname, char * depstring, char * featuresstring) {
-	if (depstring == NULL) {
-		printf("No dependencies specified.\n  Use with \x1b[90m--deps \"first_function,second_function...\"\x1b[0m\n");
+	if (depstring == NULL && featuresstring == NULL) {
+		printf("No dependencies/features specified.\n  Use with \x1b[90m--deps \"first_function,second_function...\" --features \"feature1,feature2[dep1,dep2]\"\x1b[0m\n");
 		return 1;
 	}
 	int fd = -1;
@@ -387,34 +387,35 @@ int generate_config(char * outputname, char * depstring, char * featuresstring) 
 		fd = STDOUT_FILENO;
 	}
 
-	char header[] = "[deps]\n";
-	write(fd, header, strlen(header));
+	if (depstring != NULL) {
+		char header[] = "[deps]\n";
+		write(fd, header, strlen(header));
 
-	int i = 0;
-	int start = 0;
-	int end = 0;
-	while (depstring[i] != 0) {
-		if (depstring[i] == ',') {
-			i++;
+		int i = 0;
+		int start = 0;
+		int end = 0;
+		while (depstring[i] != 0) {
+			if (depstring[i] == ',') {
+				i++;
 
-			end = i - 1;
+				end = i - 1;
 
-			write(fd, depstring + start, end - start);
-			start = end + 1;
+				write(fd, depstring + start, end - start);
+				start = end + 1;
 
 
-			write(fd, "\n", 1);
-		} else {
-			i++;
+				write(fd, "\n", 1);
+			} else {
+				i++;
+			}
 		}
+		end = i;
+
+		write(fd, depstring + start, end - start);
+		start = end + 1;
+
+		write(fd, "\n", 1);
 	}
-	end = i;
-
-	write(fd, depstring + start, end - start);
-	start = end + 1;
-
-	write(fd, "\n", 1);
-
 	if (featuresstring != NULL) {
 		char features_header[] = "[features]\n";
 		write(fd, features_header, strlen(features_header));
@@ -462,7 +463,6 @@ int generate_config(char * outputname, char * depstring, char * featuresstring) 
 		feature_end = j;
 
 		write(fd, featuresstring + feature_start, feature_end - feature_start);
-		start = end + 1;
 		write(fd, "\n", 1);
 	}
 
