@@ -18,5 +18,6 @@ typedef struct lib_config_file * plib_config;
 
 extern plib_config parse_config_file(char *);
 extern void destroy_plib_config(plib_config);
+extern int write_config_file(plib_config, char *);
 
 #endif

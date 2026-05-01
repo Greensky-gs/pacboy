@@ -226,7 +226,7 @@ int install(char * path, char * name, char * dest, char * includes) {
 	return returncode;
 }
 
-int generate_config(char * outputname, char * depstring) {
+int generate_config(char * outputname, char * depstring, char * featuresstring) {
 	if (depstring == NULL) {
 		printf("No dependencies specified.\n  Use with \x1b[90m--deps \"first_function,second_function...\"\x1b[0m\n");
 		return 1;
@@ -282,8 +282,58 @@ int generate_config(char * outputname, char * depstring) {
 	write(fd, depstring + start, end - start);
 	start = end + 1;
 
-
 	write(fd, "\n", 1);
+
+	if (featuresstring != NULL) {
+		char features_header[] = "[features]\n";
+		write(fd, features_header, strlen(features_header));
+
+		int j = 0;
+		int feature_start = 0;
+		int feature_end = 0;
+		int writing_deps = 0;
+		while (featuresstring[j] != 0) {
+			if (featuresstring[j] == '[') {
+				if (writing_deps) {
+					fprintf(stderr, "unexpected format, aborting. This will result in a bad paquet file");
+					break;
+				}
+				j++;
+				feature_end = j - 1;
+				write(fd, featuresstring + feature_start, feature_end - feature_start);
+				feature_start = feature_end + 1;
+				writing_deps = 1;
+				write(fd, "\n", 1);
+			} else if (featuresstring[j] == ']') {
+				if (!writing_deps) {
+					fprintf(stderr, "unexpected format, aborting. This will result in a bad paquet file");
+					break;
+				}
+				writing_deps = 0;
+				j++;
+				feature_end = j - 1;
+				char before[] = " - ";
+				write(fd, before, 3);
+				write(fd, featuresstring + feature_start, feature_end - feature_start);
+				feature_start = feature_end + 1;
+			} else if (featuresstring[j] == ',') {
+				j++;
+				feature_end = j - 1;
+				if (writing_deps) {
+					char before[] = " - ";
+					write(fd, before, 3);
+				}
+				write(fd, featuresstring + feature_start, feature_end - feature_start);
+				write(fd, "\n", 1);
+				feature_start = feature_end + 1;
+			} else j++;
+		}
+		feature_end = j;
+
+		write(fd, featuresstring + feature_start, feature_end - feature_start);
+		start = end + 1;
+		write(fd, "\n", 1);
+	}
 
 	if (fd != -1) close(fd);
 	return 0;

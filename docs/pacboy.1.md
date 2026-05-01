@@ -39,11 +39,14 @@ In Database mode, it will simply list all the registered libraries. No option ca
 
 ## Configuration
 
-In configuration mode, pacboy will generate a configuration file, with the given function names. You must give the function names in comma-separated list, using the `--deps` option, and you can redirect the output from *stdout* to `/path/to/dir/paquet.boy` by specifying `/path/to/dir` in the `-od` option (standing for **output directory**). Pacboy will automatically add the `/paquet.boy` at the end of the path
+In configuration mode, pacboy will generate a configuration file, with the given function names. You must give the function names in comma-separated list, using the `--deps` option, and you can redirect the output from *stdout* to `/path/to/dir/paquet.boy` by specifying `/path/to/dir` in the `-od` option (standing for **output directory**). Pacboy will automatically add the `/paquet.boy` at the end of the path.
+
+In order to specify the **features** of the paquet, you need to use `--features` in a comma-separated list of values. If some features require specific functions, specify them inside brackets ( `[]` ), in a comma-separated list of values.
 
     pacboy --generate-config -od ~/paclibs/args --deps "streq,parse_int"
     pacboy --generate-config --deps "streq"
     pacboy -od "./paclibs/string-chained-list" --deps "streq" --generate-config
+    pacboy --generate-config --deps "streq" --features "clone,comparison[ordcompare,eqcompare]"
 
 ## INFORMATION
 

@@ -169,3 +169,40 @@ void destroy_plib_config(plib_config config) {
 	if (config->features != NULL) free(config->features);
 	free(config);
 }
+
+int write_config_file(plib_config config, char * path) {
+	if (config->dependencies_count == 0 && config->features_count == 0) return 1;
+	FILE * stream;
+	if ((stream = fopen(path, "wt")) == NULL) {
+		perror("fopen");
+		return 0;
+	}
+
+	if (config->dependencies_count > 0) {
+		int i = 0;
+		fprintf(stream, "[deps]\n");
+
+		while (i < config->dependencies_count) {
+			fprintf(stream, "%s\n", config->dependencies[i]);
+			i++;
+		}
+	}
+	if (config->features_count > 0) {
+		int i = 0;
+		fprintf(stream, "[features]\n");
+
+		while (i < config->features_count) {
+			fprintf(stream, "%s\n", config->features[i]->name);
+			int j = 0;
+
+			while (config->features[i]->dependencies != NULL && config->features[i]->dependencies[j] != NULL) {
+				fprintf(stream, " - %s\n", config->features[i]->dependencies[j]);
+				j++;
+			}
+			i++;
+		}
+	}
+
+	fclose(stream);
+	return 1;
+}

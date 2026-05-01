@@ -52,24 +52,7 @@ static void help_page(struct arg_input args[], int size) {
 	}
 }
 
-int main() {
-	plib_config config = parse_config_file("./paquet.boy");
-
-	printf("config deps count : %d\n", config->dependencies_count);
-	printf("First dep : %s\n", config->dependencies[1]);
-
-	printf("Dependencies of first feature :\n");
-	int i = 0;
-	while (config->features[0]->dependencies[i] != NULL) {
-		printf(" - %s\n", config->features[0]->dependencies[i]);
-		i++;
-	}
-
-	destroy_plib_config(config);
-	return 0;
-}
-
-int _main(int argc, char * argv[]) {
+int main(int argc, char * argv[]) {
 	struct arg_input arguments[] = {
 		{ "-D", "Display the libraries database", Presence, 0, 0, NULL },
 		{ "--generate-config", "Generate a config file", Presence, 0, 0, NULL },
@@ -80,7 +63,8 @@ int _main(int argc, char * argv[]) {
 		{ "--include", "Specify dependencies headers, by comma-separated pairs (eg: \"function1=string.h,function2=src/test.h\" or \"*=thing.h\"", String, 0, 0, NULL },
 		{ "-I", "Display informations about a library, the first given argument", Presence, 0, 0, NULL },
 		{ "--change-config", "Open the interactive pacboy configuration editor", Presence, 0, 0, NULL },
-		{ "-P", "Pull changes from the database, if it exists. It overwrites any local changes", Presence, 0, 0, NULL }
+		{ "-P", "Pull changes from the database, if it exists. It overwrites any local changes", Presence, 0, 0, NULL },
+		{ "--features", "Specify the features that must be included during installation", String, 0, 0, NULL }
 	};
 	int size = sizeof(arguments) / sizeof(struct arg_input);
 
@@ -110,7 +94,7 @@ int _main(int argc, char * argv[]) {
 	}
 	if (arguments[1].found) {
 		free(syncconfig);
-		return generate_config(arguments[2].str_result, arguments[5].str_result);
+		return generate_config(arguments[2].str_result, arguments[5].str_result, arguments[10].str_result);
 	}
 	if (arguments[7].found) {
 		free(syncconfig);
