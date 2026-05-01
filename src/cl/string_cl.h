@@ -16,5 +16,6 @@ extern int stringcl_exists(chained_cell, char *);
 extern int stringcl_remove(chained_cell *, char *);
 extern int stringcl_removep(chained_cell *, chained_cell);
 extern void stringcl_foreach(chained_cell, void *, void callback(chained_cell, void *));
+extern char ** stringcl_to_array(chained_cell, unsigned long *);
 
 #endif

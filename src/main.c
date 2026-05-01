@@ -4,7 +4,6 @@
 #include "commands/commands.h"
 #include "commands/core.h"
 #include "commands/sync.h"
-#include "core/config.h"
 
 #define MAX_VAR_LENGTH 256
 #define LIB_DIR_NAME "paclibs"
@@ -123,5 +122,5 @@ int main(int argc, char * argv[]) {
 	}
 
 	free(syncconfig);
-	return install(libs_path, argv[1], argv[2], arguments[6].str_result);
+	return install(libs_path, argv[1], argv[2], arguments[6].str_result, arguments[10].str_result);
 }

@@ -52,7 +52,7 @@ static int do_include(char * name) {
 	return streq(last_dot, ".c");
 }
 
-static int copy_content(const char * sourcename, char * destname, chained_cell includes) {
+static int copy_content(const char * sourcename, char * destname, chained_cell includes, int recursion_level) {
 	int source, dest;
 	if ((source = open(sourcename, O_RDONLY)) == -1) return 1;
 	if ((dest = open(destname, O_WRONLY | O_CREAT | O_TRUNC, S_IWUSR | S_IRUSR)) == -1) {
@@ -62,9 +62,15 @@ static int copy_content(const char * sourcename, char * destname, chained_cell i
 
 	if (do_include(destname)) {
 		char include_buffer[BUFSIZ] = {0};
+		char recursion_buffer[4096] = {0};
+
+		while (recursion_level-- > 0) {
+			strcat(recursion_buffer, "../");
+		}
+		
 		chained_cell current = includes;
 		while (current != NULL) {
-			sprintf(include_buffer, "#include \"%s\"\n", current->value);
+			sprintf(include_buffer, "#include \"%s%s\"\n", recursion_buffer, current->value);
 			write(dest, include_buffer, strlen(include_buffer));
 
 			current = current->next;
@@ -91,7 +97,7 @@ static int skip(char * path) {
 	return streq(slash, "paquet.boy");
 }
 
-int copy_rec(char * base_source, char * base_dest, char * restpath, chained_cell includes) {
+int copy_rec(char * base_source, char * base_dest, char * restpath, chained_cell includes, int recursion_level, char ** selected_features, int selected_features_size) {
 	char * sourcename;
 	char * destname;
 
@@ -122,6 +128,16 @@ int copy_rec(char * base_source, char * base_dest, char * restpath, chained_cell
 		if (is_sys(entry->d_name)) continue;
 
 		if (entry->d_type == DT_DIR) {
+			if (recursion_level == 0) {
+				int i = 0;
+				int included_feature = 0;
+				while (i < selected_features_size && !included_feature) {
+					if (streq(selected_features[i], entry->d_name)) included_feature = 1;
+					i++;
+				}
+				if (!included_feature) continue;
+			}
+
 			char * newpath;
 			if ((newpath = malloc((restpath == NULL ? 0 : strlen(restpath)) + strlen(entry->d_name) + 2)) == NULL) {
 				perror("malloc");
@@ -132,17 +148,25 @@ int copy_rec(char * base_source, char * base_dest, char * restpath, chained_cell
 			if (restpath == NULL) strcat(newpath, entry->d_name);
 			else sprintf(newpath, "%s/%s", restpath, entry->d_name);
 
-			copy_rec(base_source, base_dest, newpath, includes);
+			char newbuff[PATH_MAX] = {0};
+
+			snprintf(newbuff, PATH_MAX - 1, "%s/%s", base_dest, newpath);
+
+			char * mkdirargs[] = { "mkdir", "-p", newbuff, NULL };
+			exec_command(mkdirargs);
+			copy_rec(base_source, base_dest, newpath, includes, recursion_level + 1, selected_features, selected_features_size);
 
 			free(newpath);
 		} else {
 			if (skip(entry->d_name)) continue;
 			char * newsource, * newdest;
 			if ((newsource = malloc((strlen(sourcename) + strlen(entry->d_name) + 2))) == NULL) {
+				perror("malloc");
 				fails++;
 				continue;
 			}
 			if ((newdest = malloc((strlen(destname) + strlen(entry->d_name) + 2))) == NULL) {
+				perror("malloc");
 				fails++;
 				free(newsource);
 				continue;
@@ -150,7 +174,7 @@ int copy_rec(char * base_source, char * base_dest, char * restpath, chained_cell
 			sprintf(newsource, "%s/%s", sourcename, entry->d_name);
 			sprintf(newdest, "%s/%s", destname, entry->d_name);
 
-			fails += copy_content(newsource, newdest, includes);
+			fails += copy_content(newsource, newdest, includes, recursion_level);
 			free(newsource);
 			free(newdest);
 		}

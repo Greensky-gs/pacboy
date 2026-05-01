@@ -143,3 +143,19 @@ void stringcl_foreach(chained_cell list, void * data, void callback(chained_cell
 		current = current->next;
 	}
 }
+
+char ** stringcl_to_array(chained_cell list, unsigned long * size) {
+	*size = stringcl_size(list);
+
+	char ** array;
+	if ((array = malloc(sizeof(char *) * *size)) == NULL) return NULL;
+
+	unsigned long i = 0;
+	while (i < *size) {
+		array[i] = list->value;
+		list = list->next;
+		i++;
+	}
+
+	return array;
+}
