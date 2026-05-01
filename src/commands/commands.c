@@ -10,6 +10,7 @@
 #include "../cl/string_cl.h"
 #include "../cl/pairs.h"
 #include "../aux/tools.h"
+#include "../core/config.h"
 #include "sync.h"
 
 int is_sys(char * input) {
@@ -339,6 +340,10 @@ int generate_config(char * outputname, char * depstring, char * featuresstring) 
 	return 0;
 }
 
+static void display_uniqcl(chained_cell cell, void * data) {
+	printf("%s=somefile.h", cell->value);
+	if (cell->next != NULL) printf(",");
+}
 int display_info(char * libspath, char * name) {
 	char * libpath;
 	if ((libpath = malloc(strlen(libspath) + strlen(name) + 2)) == NULL) {
@@ -373,35 +378,66 @@ int display_info(char * libspath, char * name) {
 		return 0;
 	}
 
-	int size = 0;
-	char ** parsed_args = read_config_file(configpath, &size);
-
-	if (parsed_args == NULL && size == -1) {
-		printf("Something went wrong reading the config file\n");
-
-		free(configpath);
-		free(libpath);
+	plib_config config;
+	if ((config = parse_config_file(configpath)) == NULL) {
+		perror("parse_config_file");
+		fprintf(stderr, "Incorrect read of config file");
 		return 1;
 	}
 
-	printf("Library name : \x1b[90m\x1b[4m%s\x1b[0m\nLibrary location : \x1b[94m%s\x1b[0m\nIt has \x1b[1m%d\x1b[0m functions requirements :\n", name, libpath, size);
-	int i = 0;
-	while (i < size) {
-		printf("    %s\n", parsed_args[i]);
-		i++;
+	printf("Library name : \x1b[90m\x1b[4m%s\x1b[0m\nLibrary location : \x1b[94m%s\x1b[0m\n", name, libpath);
+	if (config->dependencies_count > 0) {
+		printf("Functions requirements \x1b[90m(%d)\x1b[0m:\n", config->dependencies_count);
+
+		int i = 0;
+		while (i < config->dependencies_count) {
+			printf("    %s\n", config->dependencies[i]);
+			i++;
+		}
+	}
+	if (config->features_count > 0) {
+		printf("Features \x1b[90m(%d)\x1b[0m:\n", config->features_count);
+
+		int i = 0;
+		while (i < config->features_count) {
+			printf("    %s", config->features[i]->name);
+			if (config->features[i]->dependencies != NULL && config->features[i]->dependencies[0] != NULL) {
+				printf(" (requires following dependencies) :\n");
+
+				int j = 0;
+				while (config->features[i]->dependencies[j] != NULL) {
+					printf("        - %s\n", config->features[i]->dependencies[j]);
+					j++;
+				}
+			} else printf("\n");
+			i++;
+		}
 	}
 
-	printf("Include command : \x1b[90mpacboy %s ./ --include \"", name);
-	i = 0;
-	while (i < size) {
-		printf("%s=somefile.h", parsed_args[i]);
+	chained_cell uniq_deps = get_uniq_deps(config);
 
-		if (i != size - 1) printf(",");
-		i++;
+	printf("Include command : \x1b[90mpacboy %s ./", name);
+
+	if (uniq_deps != NULL) {
+		printf(" --include \"");
+
+		stringcl_foreach(uniq_deps, NULL, display_uniqcl);
+		printf("\"");
 	}
-	printf("\"\x1b[0m\n");
-	
-	destroy_array(parsed_args, size);
+	if (config->features_count > 0) {
+		int i = 0;
+		printf(" --features \"");
+		while (i < config->features_count) {
+			printf("%s", config->features[i]->name);
+			if (i != config->features_count - 1) printf(",");
+			i++;
+		}
+		printf("\"");
+	}
+	printf("\x1b[0m\n");
+
+	if (uniq_deps != NULL) stringcl_destroy_nofree(&uniq_deps);
+	destroy_plib_config(config);
 	free(configpath);
 	free(libpath);
 	return 0;

@@ -161,3 +161,28 @@ int copy_rec(char * base_source, char * base_dest, char * restpath, chained_cell
 	closedir(directory);
 	return fails == 0 ? 0 : 1;
 }
+
+chained_cell get_uniq_deps(plib_config config) {
+	chained_cell list = NULL;
+
+	if (config->dependencies_count > 0) {
+		int i = 0;
+		while (i < config->dependencies_count) {
+			if (!stringcl_exists(list, config->dependencies[i])) stringcl_append(&list, config->dependencies[i]);
+			i++;
+		}
+	}
+	if (config->features_count > 0) {
+		int i = 0;
+		while (i < config->features_count) {
+			int j = 0;
+			while (config->features[i]->dependencies != NULL && config->features[i]->dependencies[j] != NULL) {
+				if (!stringcl_exists(list, config->features[i]->dependencies[j])) stringcl_append(&list, config->features[i]->dependencies[j]);
+				j++;
+			}
+			i++;
+		}
+	}
+
+	return list;
+}
