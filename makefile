@@ -1,5 +1,5 @@
 CC=gcc
-FLAGS=-Wall -Wextra
+FLAGS=-Wall -Wextra -g
 SANTS=-fsanitize=address,undefined
 
 SRC_DIR=src

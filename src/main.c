@@ -4,6 +4,7 @@
 #include "commands/commands.h"
 #include "commands/core.h"
 #include "commands/sync.h"
+#include "core/config.h"
 
 #define MAX_VAR_LENGTH 256
 #define LIB_DIR_NAME "paclibs"
@@ -51,7 +52,24 @@ static void help_page(struct arg_input args[], int size) {
 	}
 }
 
-int main(int argc, char * argv[]) {
+int main() {
+	plib_config config = parse_config_file("./paquet.boy");
+
+	printf("config deps count : %d\n", config->dependencies_count);
+	printf("First dep : %s\n", config->dependencies[1]);
+
+	printf("Dependencies of first feature :\n");
+	int i = 0;
+	while (config->features[0]->dependencies[i] != NULL) {
+		printf(" - %s\n", config->features[0]->dependencies[i]);
+		i++;
+	}
+
+	destroy_plib_config(config);
+	return 0;
+}
+
+int _main(int argc, char * argv[]) {
 	struct arg_input arguments[] = {
 		{ "-D", "Display the libraries database", Presence, 0, 0, NULL },
 		{ "--generate-config", "Generate a config file", Presence, 0, 0, NULL },
