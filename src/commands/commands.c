@@ -582,7 +582,7 @@ static int prompt_configuration(char * name, char * default_value, char * result
 		return -1;
 	}
 
-	if (*result == 0) return 0;
+	if (*result == 0 || *result == '\n') return 0;
 	return 1;
 }
 
