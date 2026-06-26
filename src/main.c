@@ -6,8 +6,13 @@
 #include "commands/sync.h"
 
 #define MAX_VAR_LENGTH 256
-#define LIB_DIR_NAME "paclibs"
+
+#ifndef LIB_DIR_NAME
+#define LIB_DIR_NAME ".local/share/paclibs"
+#endif
+#ifndef CONFIG_FILE_NAME
 #define CONFIG_FILE_NAME ".config/pacboy"
+#endif
 
 static void init_lib(char * str) {
 	char * home = getenv("HOME");
