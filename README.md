@@ -19,7 +19,7 @@ Optionnally, you can use a database, which is a distant git repository containin
 ### PKGBUILD (archlinux)
 
 ```cmd
-curl -o PKGBUILD https://git.greensky.tf/Greensky/pacboy/raw/branch/PKGBUILD/PKGBUILD && makepkg -sicCf
+curl -o PKGBUILD https://git.greensky.tf/Greensky/pacboy/raw/branch/master/PKGBUILD && makepkg -sicCf
 ```
 
 > *It is then advised to run `pacboy -P` to synchronize database with default mirrors*
