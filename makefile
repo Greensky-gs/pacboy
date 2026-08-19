@@ -49,6 +49,5 @@ full:
 	make
 	make launch
 
-manpage: $(BUILD_DIR) docs/pacboy.1.md
-	pandoc -s -t man docs/pacboy.1.md -o $(BUILD_DIR)/pacboy.1
-	cp $(BUILD_DIR)/pacboy.1 /usr/share/man/man1/pacboy.1
+manpage: docs/pacboy.1
+	cp docs/pacboy.1 /usr/share/man/man1/pacboy.1

@@ -27,7 +27,7 @@ Then you can do :
 1. `git clone https://github.com/Greensky-gs/pacboy && cd pacboy` to clone the repo
 2. `make cleanbuild` to create the executable
 3. Move the binary to a folder in your path. If you want to have it globally : `sudo cp bin/main.uwu /usr/bin/pacboy`, I usually put it in my bin folder : `cp bin/main.uwu ~/bin/pacboy` - just make sure the `~/bin` is in your $PATH
-4. Optionnaly create the man page entry : `sudo make manpage`. You'll need **pandoc** for this
+4. Optionnaly create the man page entry : `sudo make manpage`
 
 ## Usage
 
