@@ -16,6 +16,16 @@ Optionnally, you can use a database, which is a distant git repository containin
 
 ## Installation
 
+### PKGBUILD (archlinux)
+
+```cmd
+curl -o PKGBUILD https://git.greensky.tf/Greensky/pacboy/raw/branch/PKGBUILD/PKGBUILD && makepkg -sicCf
+```
+
+> *It is then advised to run `pacboy -P` to synchronize database with default mirrors*
+
+### From source
+
 If you want to install it for yourself, you will first need :
 
 * gcc
