@@ -93,7 +93,7 @@ Note the **-b mirror** that specifies the mirror branch only. This is because th
 
 ## INSTALLATION
 
-In installation mode, Pacboy looks for a folder in `~/paclibs`, given as the first argument of the command. It then reads the configuration file it it exists to try to find the required functions declaration files. More on this below. If not all the functions are found, it will throw an error. When all the headers file are given through the `--include` parameter, in the format of : `function_name=header_file.h,function_name2=header_file2.h`, it will copy-paste the names in the includes. Since it is custom libraries and custom usage, it is up to the user to make sure the paths are correct, and valid in relative pathing.
+In installation mode, Pacboy looks for a folder in `~/.local/share/paclibs`, given as the first argument of the command. It then reads the configuration file it it exists to try to find the required functions declaration files. More on this below. If not all the functions are found, it will throw an error. When all the headers file are given through the `--include` parameter, in the format of : `function_name=header_file.h,function_name2=header_file2.h`, it will copy-paste the names in the includes. Since it is custom libraries and custom usage, it is up to the user to make sure the paths are correct, and valid in relative pathing.
 
     pacboy make ./
     pacboy string-chained-list ./src/structs --include "streq=../aux/tools.h"

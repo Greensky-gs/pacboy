@@ -4,7 +4,7 @@ A simple library manager to handle my custom C libraries, to copy them as needed
 
 ## How it works
 
-You create a folder name `~/paclibs`, you put one folder for each library you need, each folder containing the necessaries C and header files.
+You create a folder name `~/.local/share/paclibs`, you put one folder for each library you need, each folder containing the necessaries C and header files.
 
 Then you run `pacboy <the name of the folder> <path/to/where/it/will/be/pasted>`
 
@@ -12,7 +12,7 @@ The **content** of the folder will be copied, not the folder itself
 
 ### Database
 
-Optionnally, you can use a database, which is a distant git repository containing the `~/paclibs` folder on a branch named **mirror**. You can configure this by running `apcboy --change-config` and entering your url, or mine if you just want a general database : [https://github.com/Greensky-gs/paclibs-database](https://github.com/Greensky-gs/paclibs-database). If you use mine, just make sure you run `pacboy -P` to get the latest changes
+Optionnally, you can use a database, which is a distant git repository containing the `~/.local/share/paclibs` folder on a branch named **mirror**. You can configure this by running `apcboy --change-config` and entering your url, or mine if you just want a general database : [https://github.com/Greensky-gs/paclibs-database](https://github.com/Greensky-gs/paclibs-database). If you use mine, just make sure you run `pacboy -P` to get the latest changes
 
 ## Installation
 
