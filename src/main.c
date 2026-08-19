@@ -63,7 +63,8 @@ int main(int argc, char * argv[]) {
 		{ "-I", "Display informations about a library, the first given argument", Presence, 0, 0, NULL },
 		{ "--change-config", "Open the interactive pacboy configuration editor", Presence, 0, 0, NULL },
 		{ "-P", "Pull changes from the database, if it exists. It overwrites any local changes", Presence, 0, 0, NULL },
-		{ "--features", "Specify the features that must be included during installation", String, 0, 0, NULL }
+		{ "--features", "Specify the features that must be included during installation", String, 0, 0, NULL },
+		{ "--version", "Displays program version", Presence, 0, 0, NULL }
 	};
 	int size = sizeof(arguments) / sizeof(struct arg_input);
 
@@ -83,6 +84,10 @@ int main(int argc, char * argv[]) {
 	if (arguments[3].found || arguments[4].found) {
 		help_page(arguments, size);
 		free(syncconfig);
+		return 0;
+	}
+	if (arguments[11].found) {
+		version();
 		return 0;
 	}
 
