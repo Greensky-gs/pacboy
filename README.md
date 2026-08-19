@@ -16,6 +16,16 @@ Optionnally, you can use a database, which is a distant git repository containin
 
 ## Installation
 
+### PKGBUILD (archlinux)
+
+```cmd
+curl -o PKGBUILD https://git.greensky.tf/Greensky/pacboy/raw/branch/PKGBUILD/PKGBUILD && makepkg -sicCf
+```
+
+> *It is then advised to run `pacboy -P` to synchronize database with default mirrors*
+
+### From source
+
 If you want to install it for yourself, you will first need :
 
 * gcc
@@ -27,7 +37,8 @@ Then you can do :
 1. `git clone https://github.com/Greensky-gs/pacboy && cd pacboy` to clone the repo
 2. `make cleanbuild` to create the executable
 3. Move the binary to a folder in your path. If you want to have it globally : `sudo cp bin/main.uwu /usr/bin/pacboy`, I usually put it in my bin folder : `cp bin/main.uwu ~/bin/pacboy` - just make sure the `~/bin` is in your $PATH
-4. Optionnaly create the man page entry : `sudo make manpage`. You'll need **pandoc** for this
+4. Optionnaly create the man page entry : `sudo make manpage`
+5. Run `pacboy -P` to synchronize the database first
 
 ## Usage
 
