@@ -17,21 +17,26 @@ See **OPTIONS** below
 
 Pacboy is a small derivative of pacman, to manage local custom libraries. It is written in C and functions by copying the files it finds at the location into the destination
 
-Pacboy has 2 modes : installation mode, which is triggered when no other modes are found, requiring the **first argument** being the library that will be included, and the **second argument** being the path where it is installed. The other modes are triggered by the various command options : `--generate-config`, that will generate a configuration file, `-D` or `-I` for Database and Information modes, `--change-config`, to update pacboy's configuration, `-P` pull changes from database, and `--help` or `-h` for help
+Pacboy has 2 modes : installation mode, which is triggered when no other modes are found, requiring the **first argument** being the library that will be included, and the **second argument** being the path where it is installed. The other modes are triggered by the various command options : `--generate-config`, that will generate a configuration file, `-D` or `-I` for Database and Information modes, `--change-config`, to update pacboy's configuration, `-P` pull changes from database, and `--help` or `-h` for help, as well as `-v` for version
 
 The order of detecting modes is :
 
 1. Help, through                  : `-h` or `--help`
-2. Database                       : `-D`
-3. Config mode                    : `--generate-config`
-4. Information mode               : `-I`
-5. Change config                  : `--change-config`
-6. Pull database                  : `-P`
-7. Default is installation mode
+2. Version, with                  : `-v`
+3. Database                       : `-D`
+4. Config mode                    : `--generate-config`
+5. Information mode               : `-I`
+6. Change config                  : `--change-config`
+7. Pull database                  : `-P`
+8. Default is installation mode
 
 ## HELP
 
 Help mode will display help page, no option can alter the behavior of this mode.
+
+## Version
+
+Version mode will display the version in standard output and exits
 
 ## DATABASE
 
