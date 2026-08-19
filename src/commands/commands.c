@@ -1,3 +1,9 @@
+#include "commands.h"
+#include "../main.h"
+#include "../cl/string_cl.h"
+#include "../cl/pairs.h"
+#include "../aux/tools.h"
+#include "../core/config.h"
 #include <stdio.h>
 #include <dirent.h>
 #include <stdlib.h>
@@ -5,11 +11,6 @@
 #include <linux/limits.h>
 #include <fcntl.h>
 #include <unistd.h>
-#include "commands.h"
-#include "../cl/string_cl.h"
-#include "../cl/pairs.h"
-#include "../aux/tools.h"
-#include "../core/config.h"
 
 #define FREE_CONFIG(alloced, config) if (alloced) destroy_plib_config(config);
 
@@ -636,3 +637,7 @@ int sync_database(psyncconfig config, char * files) {
 	printf("\x1b[32mDone\x1b[0m\n");
 	return 0;
 }
+int version() {
+	printf(PROG_VERSION);
+	return 0;
+};
