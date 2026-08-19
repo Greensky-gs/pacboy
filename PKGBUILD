@@ -1,7 +1,7 @@
 pkgname=pacboy
 _name=pacboy
 pkgver=1.0.0
-pkgrel=1
+pkgrel=2
 pkgdesc="A simple library manager to handle custom C libraries, to copy them as needed"
 arch=("x86_64" "aarch75")
 url="https://git.greensky.tf/Greensky/pacboy"
@@ -9,7 +9,7 @@ license=("unknown")
 depends=()
 makedepends=('git' 'gcc' 'make')
 optdepends=()
-source=("git+${url}#commit=cbcc085d5409616c4849d22a5f37d75b8a123f9c")
+source=("git+${url}#commit=6f0120882981f8d85ea685b33ba33707ebcf89ab")
 options=("!debug")
 sha256sums=("SKIP")
 
