@@ -638,6 +638,6 @@ int sync_database(psyncconfig config, char * files) {
 	return 0;
 }
 int version() {
-	printf(PROG_VERSION);
+	printf(PROG_VERSION "\n");
 	return 0;
 };
