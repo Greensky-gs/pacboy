@@ -1,6 +1,7 @@
 CC=gcc
 FLAGS=-Wall -Wextra -g
 SANTS=-fsanitize=address,undefined
+INCLUDE_FLAGS=`curl-config --cflags --libs`
 
 SRC_DIR=src
 BUILD_DIR=build
@@ -20,10 +21,10 @@ OBJECTS=$(SOURCES:$(SRC_DIR)/%.c=$(BUILD_DIR)/%.o)
 all: $(BUILD_DIR) $(BUILD_DIRS) $(BIN_DIR)/$(NAME)
 
 $(BIN_DIR)/$(NAME): $(BIN_DIR) $(OBJECTS)
-	$(CC) $(OBJECTS) $(FLAGS) $(QUIET) $(SANTS) -o $(BIN_DIR)/$(NAME)
+	$(CC) $(INCLUDE_FLAGS) $(OBJECTS) $(FLAGS) $(QUIET) $(SANTS) -o $(BIN_DIR)/$(NAME)
 
 $(BUILD_DIR)/%.o: $(SRC_DIR)/%.c
-	$(CC) $(FLAGS) $^ -o $@ -c $(QUIET)
+	$(CC) $(INCLUDE_FLAGS) $(FLAGS) $^ -o $@ -c $(QUIET)
 
 $(BUILD_DIRS): $(BUILD_DIR)
 	mkdir -p "$@"
