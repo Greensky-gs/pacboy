@@ -16,6 +16,8 @@ Optionnally, you can use a database, which is a distant git repository containin
 
 ## Installation
 
+`curl` is required in order to build the program, since it relies on `libcurl` to fetch latest update
+
 ### PKGBUILD (archlinux)
 
 ```cmd
@@ -30,6 +32,7 @@ If you want to install it for yourself, you will first need :
 
 * gcc
 * make
+* curl
 * git (to clone the repo)
 
 Then you can do :
