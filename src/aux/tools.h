@@ -4,6 +4,8 @@
 #include "../cl/string_cl.h"
 #include "../core/config.h"
 
+#define EDIT_PTR(ptr, val) if ((ptr) != NULL) (*(ptr)) = val;
+
 extern int streq(char *, char *);
 extern int exec_command(char *[]);
 extern int copy_rec(char * base_source, char * base_dest, char * restpath, chained_cell includes, int recursion_level, char ** selected_features, int selected_features_size);

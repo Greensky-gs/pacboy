@@ -8,6 +8,7 @@ extern int is_sys(char *);
 extern int generate_config(char * outputname, char * depstring, char * featuresstring);
 extern int display_info(char *libspath, char * name);
 extern int version();
+extern int check_update();
 
 extern int update_config(psyncconfig, char *);
 

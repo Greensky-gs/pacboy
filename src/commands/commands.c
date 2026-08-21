@@ -4,6 +4,8 @@
 #include "../cl/pairs.h"
 #include "../aux/tools.h"
 #include "../core/config.h"
+#include <curl/curl.h>
+#include <netinet/in.h>
 #include <stdio.h>
 #include <dirent.h>
 #include <stdlib.h>
@@ -12,6 +14,7 @@
 #include <fcntl.h>
 #include <unistd.h>
 
+#define VERSION_BUFFER 16
 #define FREE_CONFIG(alloced, config) if (alloced) destroy_plib_config(config);
 
 int is_sys(char * input) {
@@ -639,5 +642,192 @@ int sync_database(psyncconfig config, char * files) {
 }
 int version() {
 	printf(PROG_VERSION "\n");
+
 	return 0;
 };
+
+#define VERSION_STRUCT_NUMS_CAPACITY 5
+struct version_s {
+	int is_dev_version;
+	int nums;
+	int version_numbers[VERSION_STRUCT_NUMS_CAPACITY];
+};
+/*
+ * Returns -1 if the given version is older than program (?)
+ * Returns 0 if they are equal
+ * Returns 1 if the given version is newer than program
+ */
+static int compare_versions(char * version, int * error) {
+	int index = 0;
+	
+	struct version_s prog_version = {
+		.is_dev_version = 0,
+		.nums = 0,
+		.version_numbers = { 0 }
+	};
+	struct version_s remote_version = {
+		.is_dev_version = 0,
+		.nums = 0,
+		.version_numbers = { 0 }
+	};
+
+	int working = 0;
+	while (version[index] != 0) {
+		if (index == 0 && *version == 'a' || *version == 'b') remote_version.is_dev_version = 1;
+		else if (index == 0) {
+			remote_version.is_dev_version = 0;
+			goto parse_remote_number;
+		} else {
+parse_remote_number:
+			if (version[index] == '.') {
+				working = 0;
+				remote_version.nums++;
+			} else {
+				working = 1;
+				if (!(48 <= version[index] && version[index] <= 57)) {
+					fprintf(stderr, "error while parsing remote version: %c is not a number at char %d : %s\n", version[index], index, version);
+					EDIT_PTR(error, 1);
+					return 0;
+				}
+				remote_version.version_numbers[remote_version.nums] = remote_version.version_numbers[remote_version.nums] * 10 + (version[index] - 48);
+			}
+		}
+
+		index++;
+	}
+	if (working == 1) {
+		remote_version.nums++;
+		working = 0;
+	}
+	
+	index = 0;
+	while (PROG_VERSION[index] != 0) {
+		if (index == 0 && PROG_VERSION[0] == 'a' || PROG_VERSION[0] == 'b') prog_version.is_dev_version = 1;
+		else if (index == 0) {
+			prog_version.is_dev_version = 0;
+			goto parse_local_number;
+		} else {
+parse_local_number:
+			if (PROG_VERSION[index] == '.') {
+				working = 0;
+				prog_version.nums++;
+			} else {
+				working = 1;
+				if (!(48 <= PROG_VERSION[index] && PROG_VERSION[index] <= 57)) {
+					fprintf(stderr, "error while parsing remote version: %c is not a number at char %d : %s\n", PROG_VERSION[index], index, PROG_VERSION);
+					EDIT_PTR(error, 1);
+					return 0;
+				}
+				prog_version.version_numbers[prog_version.nums] = prog_version.version_numbers[prog_version.nums] * 10 + (PROG_VERSION[index] - 48);
+			}
+		}
+
+		index++;
+	}
+	if (working == 1) {
+		prog_version.nums++;
+		working = 0;
+	}
+	index = 0;
+	while (index < VERSION_STRUCT_NUMS_CAPACITY) {
+		if (remote_version.version_numbers[index] < prog_version.version_numbers[index]) return -1;
+		else if (remote_version.version_numbers[index] > prog_version.version_numbers[index]) return 1;
+		index++;
+	}
+
+	EDIT_PTR(error, 0);
+	if (remote_version.is_dev_version && !prog_version.is_dev_version) return -1; // ?
+	if (prog_version.is_dev_version && !remote_version.is_dev_version) return 1;
+	return 0;
+}
+static int curl_callback(void * buffer, size_t size, size_t nmemb, void * userp) {
+	char * response = buffer;
+	char version[VERSION_BUFFER] = {0};
+	char begin_target[] = "#define PROG_VERSION \"";
+
+	int skipping = 0;
+	int writing = 0;
+	int done = 0;
+
+	int comparison_index = 0;
+	int version_index = 0;
+	while (*response != 0) {
+		if (skipping == 1) {
+			if (*response == '\n') skipping = 0;
+			response++;
+			continue;
+		}
+		if (writing == 1) {
+			if (*response == '"') {
+				writing = 0;
+				done = 1;
+				break;
+			}
+			version[version_index] = *response;
+			version_index++;
+			response++;
+			continue;
+		}
+		
+		if (*response == begin_target[comparison_index]) {
+			comparison_index++;
+			response++;
+
+			if (begin_target[comparison_index] == 0) writing = 1;
+		} else {
+			comparison_index = 0;
+			skipping = 1;
+		}
+	}
+	if (done != 1) {
+		fprintf(stderr, "Error while parsing returned version\n");
+		return size * nmemb;
+	}
+
+	int has_error;
+	int compare_result = compare_versions(version, &has_error);
+	if (has_error == 1) {
+		fprintf(stderr, "Cannot continue\n");
+		return size * nmemb;
+	}
+	if (compare_result == 1) {
+		printf("%s available\n", version);
+	} else {
+		printf("Up to date\n");
+	}
+
+	return size * nmemb;
+}
+int check_update() {
+	CURL * curl;
+	CURLcode result = curl_global_init(CURL_GLOBAL_ALL);
+
+	if (result != CURLE_OK) {
+		fprintf(stderr, "Invalid curl init (code: %d)\n", result);
+		return (int)result;
+	}
+
+	if (!(curl = curl_easy_init())) {
+		fprintf(stderr, "Failed to init.\n");
+		curl_global_cleanup();
+		return 1;
+	}
+
+	curl_easy_setopt(curl, CURLOPT_URL, "https://" PROG_SOURCE_UPSTREAM_ORIGIN "/" PROG_SOURCE_UPSTREAM_PATH);
+	curl_easy_setopt(curl, CURLOPT_SSL_VERIFYHOST, 0L);
+	curl_easy_setopt(curl, CURLOPT_CA_CACHE_TIMEOUT, 604800L);
+	curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
+	curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, curl_callback);
+
+	result = curl_easy_perform(curl);
+	if (result != CURLE_OK) {
+		fprintf(stderr, "curl_easy_perform() failed: %s\n", curl_easy_strerror(result));
+		curl_easy_cleanup(curl);
+		curl_global_cleanup();
+		return 1;
+	}
+
+	curl_easy_cleanup(curl);
+	curl_global_cleanup();
+	return 0;
+}
