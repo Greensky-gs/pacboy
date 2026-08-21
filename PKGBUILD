@@ -6,7 +6,7 @@ pkgdesc="A simple library manager to handle custom C libraries, to copy them as 
 arch=("x86_64" "aarch75")
 url="https://git.greensky.tf/Greensky/pacboy"
 license=("unknown")
-depends=()
+depends=('curl')
 makedepends=('git' 'gcc' 'make')
 optdepends=()
 source=("git+${url}#commit=9d1c64a29b811ec30b237d16cba789ac1f30a88a")
