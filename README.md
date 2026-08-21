@@ -12,7 +12,7 @@ The **content** of the folder will be copied, not the folder itself
 
 ### Database
 
-Optionnally, you can use a database, which is a distant git repository containing the `~/.local/share/paclibs` folder on a branch named **mirror**. You can configure this by running `apcboy --change-config` and entering your url, or mine if you just want a general database : [https://github.com/Greensky-gs/paclibs-database](https://github.com/Greensky-gs/paclibs-database). If you use mine, just make sure you run `pacboy -P` to get the latest changes
+Optionnally, you can use a database, which is a distant git repository containing the `~/.local/share/paclibs` folder on a branch named **mirror**. You can configure this by running `apcboy --change-config` and entering your url, or mine if you just want a general database : [https://git.greensky.tf/Greensky/paclibs-database](https://git.greensky.tf/Greensky/paclibs-database). If you use mine, just make sure you run `pacboy -P` to get the latest changes
 
 ## Installation
 
