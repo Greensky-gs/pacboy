@@ -17,26 +17,33 @@ See **OPTIONS** below
 
 Pacboy is a small derivative of pacman, to manage local custom libraries. It is written in C and functions by copying the files it finds at the location into the destination
 
-Pacboy has 2 modes : installation mode, which is triggered when no other modes are found, requiring the **first argument** being the library that will be included, and the **second argument** being the path where it is installed. The other modes are triggered by the various command options : `--generate-config`, that will generate a configuration file, `-D` or `-I` for Database and Information modes, `--change-config`, to update pacboy's configuration, `-P` pull changes from database, and `--help` or `-h` for help, as well as `-v` for version
+Pacboy has 2 modes : installation mode, which is triggered when no other modes are found, requiring the **first argument** being the library that will be included, and the **second argument** being the path where it is installed. The other modes are triggered by the various command options : `--generate-config`, that will generate a configuration file, `-D` or `-I` for Database and Information modes, `--change-config`, to update pacboy's configuration, `-P` pull changes from database, and `--help` or `-h` for help, as well as `-v` for version, also `-u` to check if a newer version is available
 
 The order of detecting modes is :
 
 1. Help, through                  : `-h` or `--help`
 2. Version, with                  : `-v`
-3. Database                       : `-D`
-4. Config mode                    : `--generate-config`
-5. Information mode               : `-I`
-6. Change config                  : `--change-config`
-7. Pull database                  : `-P`
-8. Default is installation mode
+3. Check for update               : `-u`
+4. Database                       : `-D`
+5. Config mode                    : `--generate-config`
+6. Information mode               : `-I`
+7. Change config                  : `--change-config`
+8. Pull database                  : `-P`
+9. Default is installation mode
 
 ## HELP
 
 Help mode will display help page, no option can alter the behavior of this mode.
 
-## Version
+## VERSION
 
 Version mode will display the version in standard output and exits
+
+## UPDATE CHECK
+
+Update check will fetch from remote address (https://git.greensky.tf/Greensky/pacboy), and will see if a newer version is available from code. Curl is required, since libcurl is used to make the fetch
+
+It returns the new version number if available, or says *Up to date* if no newer version is found
 
 ## DATABASE
 
@@ -75,7 +82,7 @@ In information mode, Pacboy will show the informations of the given library, suc
 - If it has any, the list of expected functions
 - An example of a command that could be used to install it
 
-## Change config
+## CHANGE CONFIG
 
 In Change config, pacboy will prompt the user for successive parameters, to answer in the terminal. Leaving a field blank doesn't change it. Fields that can be modified :
 
@@ -132,6 +139,10 @@ To include features in installation, use the `--features` flag. It will automati
 -P : Pull the database from git.
 
 \--features : Specify the features, for either **INSTALLATION MODE**, or **CONFIGURATION MODE**. Refer to the according part of the manual for more information
+
+-v : Displays the current version and exits
+
+-u : Check for newer versions
 
 # RETURN VALUE
 

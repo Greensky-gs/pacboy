@@ -24,7 +24,8 @@ file, \f[CR]\-D\f[R] or \f[CR]\-I\f[R] for Database and Information
 modes, \f[CR]\-\-change\-config\f[R], to update pacboy\(cqs
 configuration, \f[CR]\-P\f[R] pull changes from database, and
 \f[CR]\-\-help\f[R] or \f[CR]\-h\f[R] for help, as well as
-\f[CR]\-v\f[R] for version
+\f[CR]\-v\f[R] for version, also \f[CR]\-u\f[R] to check if a newer
+version is available
 .PP
 The order of detecting modes is :
 .IP "1." 3
@@ -32,22 +33,32 @@ Help, through : \f[CR]\-h\f[R] or \f[CR]\-\-help\f[R]
 .IP "2." 3
 Version, with : \f[CR]\-v\f[R]
 .IP "3." 3
-Database : \f[CR]\-D\f[R]
+Check for update : \f[CR]\-u\f[R]
 .IP "4." 3
-Config mode : \f[CR]\-\-generate\-config\f[R]
+Database : \f[CR]\-D\f[R]
 .IP "5." 3
-Information mode : \f[CR]\-I\f[R]
+Config mode : \f[CR]\-\-generate\-config\f[R]
 .IP "6." 3
-Change config : \f[CR]\-\-change\-config\f[R]
+Information mode : \f[CR]\-I\f[R]
 .IP "7." 3
-Pull database : \f[CR]\-P\f[R]
+Change config : \f[CR]\-\-change\-config\f[R]
 .IP "8." 3
+Pull database : \f[CR]\-P\f[R]
+.IP "9." 3
 Default is installation mode
 .SS HELP
 Help mode will display help page, no option can alter the behavior of
 this mode.
-.SS Version
+.SS VERSION
 Version mode will display the version in standard output and exits
+.SS UPDATE CHECK
+Update check will fetch from remote address
+(https://git.greensky.tf/Greensky/pacboy), and will see if a newer
+version is available from code.
+Curl is required, since libcurl is used to make the fetch
+.PP
+It returns the new version number if available, or says \f[I]Up to
+date\f[R] if no newer version is found
 .SS DATABASE
 In Database mode, it will simply list all the registered libraries.
 No option can modify the behavior of this mode
@@ -109,7 +120,7 @@ The location
 If it has any, the list of expected functions
 .IP \(bu 2
 An example of a command that could be used to install it
-.SS Change config
+.SS CHANGE CONFIG
 In Change config, pacboy will prompt the user for successive parameters,
 to answer in the terminal.
 Leaving a field blank doesn\(cqt change it.
@@ -132,7 +143,8 @@ This is because the database must contain exclusively the folders for
 the libraries, and nothing else, so a dedicated branch should be set up.
 .SS INSTALLATION
 In installation mode, Pacboy looks for a folder in
-\f[CR]\(ti/.local/share/paclibs\f[R], given as the first argument of the command.
+\f[CR]\(ti/.local/share/paclibs\f[R], given as the first argument of the
+command.
 It then reads the configuration file it it exists to try to find the
 required functions declaration files.
 More on this below.
@@ -205,6 +217,10 @@ of the required libraries for \f[B]CONFIGRATION MODE\f[R]
 \-\-features : Specify the features, for either \f[B]INSTALLATION
 MODE\f[R], or \f[B]CONFIGURATION MODE\f[R].
 Refer to the according part of the manual for more information
+.PP
+\-v : Displays the current version and exits
+.PP
+\-u : Check for newer versions
 .SH RETURN VALUE
 The command returns 0 if everything went alright, 1 otherwise
 .SH SEE ALSO
