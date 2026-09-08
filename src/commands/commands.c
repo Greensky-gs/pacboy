@@ -605,23 +605,16 @@ int update_config(psyncconfig config, char * save_path) {
 }
 
 int sync_database(psyncconfig config, char * files) {
-	char * pre_rmargs[] = { "rm", "-rf", files, NULL };
-	int res = exec_command(pre_rmargs);
+	char WORKING_DIR[] = "/tmp/pacboy-temp-database-dir";
 
-	if (res != 0) {
-		fprintf(stderr, "Something went wrong. Code: %d\n", res);
-		return 1;
-	}
+	int res;
 
 	printf("\x1b[35mCloning from %s...\x1b[0m\n", config->repo_url);
-
-	char * args[] = { "git", "clone", "-b", "mirror", "--single-branch", config->repo_url, files, NULL };
-	res = exec_command(args);
-	if (res != 0) {
-		fprintf(stderr, "Something went wrong. Code: %d\n", res);
-		return 1;
+	char * clone_args[] = { "git", "clone", "-b", "mirror", "--single-branch", config->repo_url, WORKING_DIR, NULL };
+	if ((res = exec_command(clone_args)) != 0) {
+			fprintf(stderr, "Failed to clone mirror. Code: %d\n", res);
+			return 1;
 	}
-
 	char dotgit[PATH_MAX];
 	snprintf(dotgit, PATH_MAX - 1, "%s/%s", files, ".git");
 
@@ -631,8 +624,27 @@ int sync_database(psyncconfig config, char * files) {
 
 	if (res != 0) {
 		fprintf(stderr, "Something went wrong. Code: %d\n", res);
+
+		char * clear_args[] = { "rm", "-rf", WORKING_DIR, NULL };
+		exec_command(clear_args);
 		return 1;
 	}
+
+	char * pre_rmargs[] = { "rm", "-rf", files, NULL };
+	res = exec_command(pre_rmargs);
+
+	if (res != 0) {
+		fprintf(stderr, "Something went wrong. Code: %d\n", res);
+		return 1;
+	}
+
+	char * mv_args[] = { "mv", WORKING_DIR, files, NULL };
+	res = exec_command(mv_args);
+	if (res != 0) {
+		fprintf(stderr, "Error while moving data. Code: %d\n", res);
+		return 1;
+	}
+
 
 	printf("\x1b[32mDone\x1b[0m\n");
 	return 0;
