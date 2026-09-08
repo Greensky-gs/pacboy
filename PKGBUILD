@@ -1,7 +1,7 @@
 pkgname=pacboy
 _name=pacboy
-pkgver=1.0.0
-pkgrel=3
+pkgver=1.0.1
+pkgrel=1
 pkgdesc="A simple library manager to handle custom C libraries, to copy them as needed"
 arch=("x86_64" "aarch75")
 url="https://git.greensky.tf/Greensky/pacboy"
