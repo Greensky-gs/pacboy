@@ -1,0 +1,11 @@
+#!/usr/bin/make -f
+
+%:
+	dh $@
+
+override_dh_auto_build:
+	$(MAKE) cleanbuild
+
+override_dh_auto_install:
+	install -Dm755 bin/main.uwu debian/pacboy/usr/bin/pacboy
+	install -Dm644 docs/pacboy.1 debian/pacboy/usr/share/man/man1/pacboy.1

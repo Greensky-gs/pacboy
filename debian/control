@@ -1,0 +1,18 @@
+Source: pacboy
+Section: devel
+Priority: optional
+Maintainer: Greensky <david.hesliere@gmail.com>
+Build-Depends:
+ debhelper-compat (= 13),
+ gcc,
+ make
+Standards-Version: 4.7.0
+Homepage: https://git.greensky.tf/Greensky/pacboy
+Rules-Requires-Root: no
+
+Package: pacboy
+Architecture: amd64 arm64
+Depends: ${misc:Depends}, ${shlibs:Depends}
+Description: Simple library manager for my custom C libraries
+ pacboy is a simple library manager that handles custom C libraries
+ and copies them as needed.

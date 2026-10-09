@@ -1,0 +1,6 @@
+pacboy (1.0.1-1) unstable; urgency=medium
+
+  * Initial Debian package.
+  * Build from upstream commit 9d1c64a29b811ec30b237d16cba789ac1f30a88a.
+
+ -- Greensky <david.hesliere@gmail.com>  Fri, 09 Oct 2026 17:57:00 +0200
