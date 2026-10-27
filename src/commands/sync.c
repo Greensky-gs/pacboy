@@ -66,6 +66,6 @@ psyncconfig default_config() {
 		return NULL;
 	}
 
-  STRCP(config->repo_url, DEFAULT_MIRROR_URL, CONFIG_MAX_STR_SIZE, 1);
+  STRCP(DEFAULT_MIRROR_URL, config->repo_url, CONFIG_MAX_STR_SIZE, 1);
 	return config;
 }
