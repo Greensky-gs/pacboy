@@ -4,7 +4,7 @@
 	dh $@
 
 override_dh_auto_build:
-	$(MAKE) cleanbuild
+	$(MAKE) cleanbuild DEFAULT_MIRROR_URL="https://git.greensky.tf/Greensky/paclibs-database" PROG_VERSION="1.0.2"
 
 override_dh_auto_install:
 	install -Dm755 bin/main.uwu debian/pacboy/usr/bin/pacboy
