@@ -612,11 +612,11 @@ int sync_database(psyncconfig config, char * files) {
 	printf("\x1b[35mCloning from %s...\x1b[0m\n", config->repo_url);
 	char * clone_args[] = { "git", "clone", "-b", "mirror", "--single-branch", config->repo_url, WORKING_DIR, NULL };
 	if ((res = exec_command(clone_args)) != 0) {
-			fprintf(stderr, "Failed to clone mirror. Code: %d\n", res);
-			return 1;
+		fprintf(stderr, "Failed to clone mirror. Code: %d\n", res);
+		return 1;
 	}
 	char dotgit[PATH_MAX];
-	snprintf(dotgit, PATH_MAX - 1, "%s/%s", files, ".git");
+	snprintf(dotgit, PATH_MAX - 1, "%s/%s", WORKING_DIR, ".git");
 
 	printf("\x1b[35mRemoving \x1b[90m.git\x1b[35m folder...\x1b[0m\n");
 	char * rmargs[] = { "rm", "-rf", dotgit, NULL };
