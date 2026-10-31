@@ -1,0 +1,124 @@
+name: 'Send Discord notification'
+description: 'Send a rich embed notification to Discord'
+
+inputs:
+  webhook_url:
+    description: 'Discord webhook URL'
+    required: true
+  bot_name:
+    description: 'Display name for the webhook message'
+    required: false
+    default: 'Forgejo'
+  bot_avatar_url:
+    description: 'Avatar shown for the webhook message'
+    required: false
+    default: ''
+  color:
+    description: 'Embed color as a decimal integer'
+    required: false
+    default: '5814783'
+  title:
+    description: 'Embed title'
+    required: true
+  title_url:
+    description: 'Optional URL attached to the embed title'
+    required: false
+    default: ''
+  description_file:
+    description: 'Path to a Markdown file used as the embed description'
+    required: false
+    default: ''
+  description:
+    description: 'Embed description'
+    required: true
+  footer_text:
+    description: 'Footer text, usually the user display name'
+    required: true
+  footer_icon_url:
+    description: 'Footer avatar/image URL'
+    required: false
+    default: ''
+  attachment_name:
+    description: 'Optional filename shown in Discord; defaults to the basename of attachment_file'
+    required: false
+    default: ''
+  attachment_file:
+    description: 'Optional path to a file to attach to the Discord message'
+    required: false
+    default: ''
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Send Discord embed
+      shell: bash
+      env:
+        WEBHOOK_URL: ${{ inputs.webhook_url }}
+        BOT_NAME: ${{ inputs.bot_name }}
+        BOT_AVATAR_URL: ${{ inputs.bot_avatar_url }}
+        COLOR: ${{ inputs.color }}
+        TITLE: ${{ inputs.title }}
+        TITLE_URL: ${{ inputs.title_url }}
+        DESCRIPTION_INPUT: ${{ inputs.description }}
+        FOOTER_TEXT: ${{ inputs.footer_text }}
+        FOOTER_ICON_URL: ${{ inputs.footer_icon_url }}
+        ATTACHMENT_FILE: ${{ inputs.attachment_file }}
+        ATTACHMENT_NAME: ${{ inputs.attachment_name }}
+      run: |
+        DESCRIPTION=""
+        if [ -n "$DESCRIPTION_FILE" ]; then
+          DESCRIPTION="$(cat "$DESCRIPTION_FILE")"
+        else
+          DESCRIPTION="$DESCRIPTION_INPUT"
+        fi
+
+        ATTACHMENT_FILENAME="$ATTACHMENT_NAME"
+        if [ -z "$ATTACHMENT_FILENAME" ] && [ -n "$ATTACHMENT_FILE" ]; then
+          ATTACHMENT_FILENAME="$(basename "$ATTACHMENT_FILE")"
+        fi
+
+        payload="$(jq -n \
+          --arg username "$BOT_NAME" \
+          --arg avatar_url "$BOT_AVATAR_URL" \
+          --arg title "$TITLE" \
+          --arg title_url "$TITLE_URL" \
+          --arg description "$DESCRIPTION" \
+          --arg timestamp "$(date -u +%Y-%m-%dT%H:%M:%S.%3NZ)" \
+          --argjson color "$COLOR" \
+          --arg footer_text "$FOOTER_TEXT" \
+          --arg footer_icon_url "$FOOTER_ICON_URL" \
+          --arg attachment_filename "$ATTACHMENT_FILENAME" \
+          '{
+            username: $username,
+            avatar_url: (if $avatar_url == "" then null else $avatar_url end),
+            embeds: [{
+              title: $title,
+              url: (if $title_url == "" then null else $title_url end),
+              description: $description,
+              color: $color,
+              timestamp: $timestamp,
+              footer: {
+                text: $footer_text,
+                icon_url: (if $footer_icon_url == "" then null else $footer_icon_url end)
+              }
+            }]
+          }')"
+
+        if [ -n "$ATTACHMENT_FILE" ]; then
+          test -f "$ATTACHMENT_FILE"
+
+          payload="$(echo "$payload" | jq \
+            --arg filename "$ATTACHMENT_FILENAME" \
+            '. + {attachments: [{id: 0, filename: $filename}]}')"
+
+          curl -fsS \
+            -F "payload_json=$payload" \
+            -F "files[0]=@$ATTACHMENT_FILE" \
+            "$WEBHOOK_URL"
+        else
+          curl -fsS \
+            -H "Content-Type: application/json" \
+            -d "$payload" \
+            "$WEBHOOK_URL"
+        fi
+

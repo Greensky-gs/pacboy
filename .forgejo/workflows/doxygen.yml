@@ -1,0 +1,108 @@
+name: Create doc and send webhook
+
+on:
+  push:
+    branches:
+      - main
+      - master
+  workflow_dispatch:
+
+jobs:
+  documentation:
+    runs-on: docker
+    steps:
+      - name: Check out repository
+        use: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          apt update
+          apt-get install -y curl git wget tar doxygen
+
+      - name: Generate documentation
+        run: |
+          set -euo pipefail
+
+          test -d src
+
+          cat > Doxyfile <<EOF
+          PROJECT_NAME           = "${PROJECT_NAME##*/}"
+          PROJECT_BRIEF          = "Automatically generated Doxygen documentation"
+          INPUT                  = src
+          RECURSIVE              = YES
+          FILE_PATTERNS          = *.c *.cc *.cpp *.cxx *.h *.hh *.hpp *.hxx *.py *.java *.cs *.php *.md
+          EXTRACT_ALL            = YES
+          EXTRACT_PRIVATE        = YES
+          EXTRACT_STATIC         = YES
+          OUTPUT_DIRECTORY       = documentation
+          GENERATE_HTML          = YES
+          HTML_OUTPUT            = html
+          GENERATE_LATEX         = NO
+          GENERATE_XML           = NO
+          QUIET                  = YES
+          WARNINGS               = YES
+          EOF
+
+          doxygen Doxyfile
+
+      - name: Archive documentation
+        id: archive
+        run: |
+          set -euo pipefail
+
+          test -d documentation/html
+
+          tar -czf documentation.tar.gz -C documentation.html
+
+          FILE_COUNT="$( find documentation/html -type f | wc -l )"
+          UNCOMPRESSED_SIZE="$( du -sh documentation/html | cut -f1 )"
+          ARCHIVE_SIZE="$( du -sh documentation.tar.gz | cut -f1 )"
+          COMPILED_AT="$( date -u +'%d/%m/%Y %H:%M:%S UTC' )"
+
+          {
+            echo "file_count=$FILE_COUNT"
+            echo "uncompressed_size=$UNCOMPRESSED_SIZE"
+            echo "archive_size=$ARCHIVE_SIZE"
+            echo "compiled_at=$COMPILED_AT"
+          } >> "$GITHUB_OUTPUT"
+ 
+      - name: Get repository name
+        id: repo
+        run: echo "name=${GITHUB_REPOSITORY##*/}" >> "$GITHUB_OUTPUT"
+
+      - name: Prepare discord description
+        id: description
+        env:
+          FILE_COUNT: ${{ steps.archive.outputs.file_count }}
+          UNCOMPRESSED_SIZE: ${{ steps.archive.outputs.uncompressed_size }}
+          ARCHIVE_SIZE: ${{ steps.archive.outputs.archive_size }}
+          COMPILED_AT: ${{ steps.archive.outputs.compiled_at }}
+          REPO_NAME: ${{ steps.repo.outputs.name }}
+          REPO_URL: ${{ github.server_url }}/${{ github.repository }}
+        run: |
+          set -euo pipefail
+
+          cat > discord-description.md <<EOF
+          Doxygen documentation for [**REPO_NAME**]($REPO_URL) was generated successfully
+
+          - **Compiled :** `$COMPILED_AT`
+          - **Documented files :** `$FILE_COUNT`
+          - **Uncompressed size :** `$UNCOMPRESSED_SIZE`
+          - **Archive size :** `$ARCHIVE_SIZE`
+          EOF
+
+      - name: Send discord webhook
+        uses: ./.forgejo/actions/discord-notify
+        with:
+          webhook_url: ${{ secrets.DISCORD_WEBHOOK_URL }}
+          # Logo from https://www.flaticon.com/free-icons/open-book
+          bot_avatar_url: 'https://git.greensky.tf/Greensky/assets/raw/commit/21ababfea84076b882e28ccb291a34de45ffa351/icons/wiki.png'
+          bot_name: '[DOC] ${{ steps.repo.outputs.name }}'
+          color: '3447003'
+          title: 'Documentation generated'
+          title_url: '${{ github.server_url }}/${{ github.repository }}'
+          description_file: discord-description.md
+          attachment_file: documentation.tar.gz
+          attachment_name: documentation.tar.gz
+          footer_text: 'Forgejo Actions'
+          footer_icon_url: 'https://git.greensky.tf/assets/img/logo.svg'
