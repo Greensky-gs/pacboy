@@ -33,8 +33,8 @@ static void init_conf(char * str) {
 	snprintf(str, MAX_VAR_LENGTH - 1, "%s/%s", home, CONFIG_FILE_NAME);
 }
 
-static void help_page(struct arg_input args[], int size) {
-	printf("Pacboy packet manager.\n  Basic usage : \x1b[90mpacboy <lib name> <install path> [OPTIONS]\x1b[0m, or \x1b[90mpacboy [OPTIONS]\x1b[0m\n  Options are :\n");
+static void help_page(struct arg_input args[], int size, char * util_name) {
+	printf("Pacboy packet manager.\n  Basic usage : \x1b[90m%s <lib name> <install path> [OPTIONS]\x1b[0m, or \x1b[90m%s [OPTIONS]\x1b[0m\n  Options are :\n", util_name, util_name);
 
 	int i = 0;
 	while (i < size) {
@@ -87,12 +87,13 @@ int main(int argc, char * argv[]) {
 	setup(libs_path);
 
 	if (arguments[3].found || arguments[4].found) {
-		help_page(arguments, size);
+		help_page(arguments, size, argv[0]);
 		free(syncconfig);
 		return 0;
 	}
 	if (arguments[11].found) {
 		version();
+    free(syncconfig);
 		return 0;
 	}
 
@@ -126,7 +127,7 @@ int main(int argc, char * argv[]) {
 	}
 
 	if (argc < 3) {
-		help_page(arguments, size);
+		help_page(arguments, size, argv[0]);
 		free(syncconfig);
 		return 0;
 	}

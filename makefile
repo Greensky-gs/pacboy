@@ -1,6 +1,8 @@
 CC=gcc
-FLAGS=-Wall -Wextra -g
+FLAGS=-Wall -Wextra -Wundef -Wpedantic -g
 SANTS=-fsanitize=address,undefined
+CLEANBUILD_FLAGS=-O3
+LIBS_FLAG=
 
 SRC_DIR=src
 BUILD_DIR=build
@@ -17,13 +19,21 @@ SOURCES=$(SOURCES_REG) $(SOURCES_IND)
 BUILD_DIRS=$(SOURCES_DIR:$(SRC_DIR)/%/=$(BUILD_DIR)/%/)
 OBJECTS=$(SOURCES:$(SRC_DIR)/%.c=$(BUILD_DIR)/%.o)
 
+INT_VARS :=
+VARS := DEFAULT_MIRROR_URL PROG_VERSION
+
+MACRO_FLAGS := $(strip $(foreach v,$(VARS),\
+  $(if $(strip $($(v))),-D$(v)="\"$($(v))\"")\
+)) $(strip $(foreach v, $(INT_VARS), \
+  $(if $(strip $($(v))),-D$(v)=$($(v)))\
+))
 all: $(BUILD_DIR) $(BUILD_DIRS) $(BIN_DIR)/$(NAME)
 
 $(BIN_DIR)/$(NAME): $(BIN_DIR) $(OBJECTS)
-	$(CC) $(OBJECTS) $(FLAGS) $(QUIET) $(SANTS) -o $(BIN_DIR)/$(NAME)
+	$(CC) $(OBJECTS) $(FLAGS) $(LIBS_FLAG) $(SANTS) $(MACRO_FLAGS) -o $(BIN_DIR)/$(NAME)
 
 $(BUILD_DIR)/%.o: $(SRC_DIR)/%.c
-	$(CC) $(FLAGS) $^ -o $@ -c $(QUIET)
+	$(CC) $(FLAGS) $(LIBS_FLAG) $(MACRO_FLAGS) $^ -o $@ -c
 
 $(BUILD_DIRS): $(BUILD_DIR)
 	mkdir -p "$@"
@@ -42,12 +52,9 @@ launch:
 
 cleanbuild:
 	make clean
-	make FLAGS= SANTS= 
+	make FLAGS="$(CLEANBUILD_FLAGS) -DDISABLE_DEBUG=$(DISABLE_DEBUG)" SANTS= $(foreach v,$(VARS),$(v)="$($(v))")
 
 full:
 	make clean
 	make
 	make launch
-
-manpage: docs/pacboy.1
-	cp docs/pacboy.1 /usr/share/man/man1/pacboy.1

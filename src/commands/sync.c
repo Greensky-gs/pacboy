@@ -1,5 +1,9 @@
-#include "./sync.h"
-#include "./core.h"
+#include "sync.h"
+#include "core.h"
+#include "../macros.h"
+#include "../main.h"
+
+#include <errno.h>
 #include <stdlib.h>
 #include <fcntl.h>
 #include <unistd.h>
@@ -15,7 +19,9 @@ psyncconfig read_sync_config_file(char * path, int * returncode) {
 
 	int fd;
 	if ((fd = open(path, O_RDONLY, 0)) == -1) {
-		perror("open");
+    // Expect the file to not exist, since it could be the case after the first install
+		if (errno != ENOENT) perror("open");
+
 		free(config);
 		SET_PTR_VAL(returncode, OPEN);
 		return NULL;
@@ -60,6 +66,6 @@ psyncconfig default_config() {
 		return NULL;
 	}
 
-	config->repo_url[0] = 0;
+  STRCP(DEFAULT_MIRROR_URL, config->repo_url, CONFIG_MAX_STR_SIZE, 1);
 	return config;
 }
