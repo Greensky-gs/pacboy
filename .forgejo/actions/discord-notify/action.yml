@@ -60,6 +60,7 @@ runs:
         TITLE: ${{ inputs.title }}
         TITLE_URL: ${{ inputs.title_url }}
         DESCRIPTION_INPUT: ${{ inputs.description }}
+        DESCRIPTION_FILE: ${{ inputs.description_file }}
         FOOTER_TEXT: ${{ inputs.footer_text }}
         FOOTER_ICON_URL: ${{ inputs.footer_icon_url }}
         ATTACHMENT_FILE: ${{ inputs.attachment_file }}
