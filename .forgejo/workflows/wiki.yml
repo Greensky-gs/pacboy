@@ -21,7 +21,7 @@ jobs:
 
       - name: Install deps
         run: |
-          pacman -Syu curl jq
+          pacman -Syu --noconfirm curl jq
 
           curl -o sign.gpg https://git.greensky.tf/api/packages/Greensky/arch/repository.key
           pacman-key --add sign.gpg
@@ -33,7 +33,7 @@ jobs:
             echo "Server = https://git.greensky.tf/api/packages/Greensky/arch/main/$arch"
           } >> /etc/pacman.conf
 
-          pacman -Sy docc-to-md
+          pacman -Sy --noconfirm docc-to-md
 
       - name: Generate documentation
         id: documentation
