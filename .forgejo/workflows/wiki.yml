@@ -1,0 +1,123 @@
+name: Create doc, publish it to wiki and send webhook
+
+on:
+  push:
+    branches:
+      - main
+    paths-ignore:
+      - '.forgejo/**'
+      - 'README.md'
+      - 'makefile'
+      - 'CMakeLists.txt'
+      - 'PKGBUILD'
+  workflow_dispatch:
+
+jobs:
+  documentation:
+    runs-on: arch
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Install deps
+        run: |
+          pacman -Syu curl jq
+
+          curl -o sign.gpg https://git.greensky.tf/api/packages/Greensky/arch/repository.key
+          pacman-key --add sign.gpg
+          pacman-key --lsign-key 'Greensky@noreply.git.greensky.tf'
+
+          {
+            echo "[greensky.git.greensky.tf]"
+            echo "SigLevel = Required"
+            echo "Server = https://git.greensky.tf/api/packages/Greensky/arch/main/$arch"
+          } >> /etc/pacman.conf
+
+          pacman -Sy docc-to-md
+
+      - name: Generate documentation
+        id: documentation
+        env:
+          URL: ${{ github.server_url }}/${{ github.repository }}
+        run: |
+          WIKI_DIR="$( realpath ~/documentation )"
+          echo "wiki_dir=$WIKI_DIR" >> "$GITHUB_OUTPUT"
+
+          docc-to-md --src src --dest "$WIKI_DIR" --verbose-registration --enable-docstring --reference-files --git-line --pre-linkage --rebase-path $URL/src/branch/main/
+
+      - name: Push documentation to wiki
+        id: pushwiki
+        env:
+          WIKI_TOKEN: ${{ secrets.WRITE_REPO_TOKEN }}
+          WIKI_USERNAME: ${{ secrets.WRITE_REPO_USERNAME }}
+          WIKI_DIR: ${{ steps.documentation.outputs.wiki_dir }}
+          SERVER_URL: ${{ github.server_url }}
+          REPO_NAME: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+
+          ROOT="$(pwd)"
+          WIKI_URL="$SERVER_URL/$REPO_NAME.wiki.git"
+          AUTH_HEADER="Authorization: Basic $(printf '%s' "$WIKI_USERNAME:$WIKI_TOKEN" | base64 | tr -d '\n')"
+
+          rm -rf wiki
+          if git clone "$WIKI_URL" wiki; then
+            echo "Wiki cloné."
+          else
+            echo "::warning::Impossible de cloner le wiki ; initialisation d'un dépôt local."
+            mkdir wiki
+            git -C wiki init
+            git -C wiki checkout -b main
+          fi
+
+          find wiki -maxdepth 1 -type f -name 'api-*.md' -delete
+          find wiki -maxdepth 1 -type f -name 'api.md' -delete
+
+          rm -rf wiki/*
+          cp -v "$WIKI_DIR"/*.md wiki/
+
+          cd wiki
+          git add .
+
+          git -c user.name="forgejo docs" \
+              -c user.email="docs@noreply.$SERVER_URL" \
+              commit -m "Update generated API documentation" || true
+
+          # En cas d'initialisation locale, ajoute le dépôt distant.
+          if ! git remote get-url origin >/dev/null 2>&1; then
+            git remote add origin "$WIKI_URL"
+          fi
+
+          git -c http.extraheader="$AUTH_HEADER" push -u origin HEAD
+
+      - name: Send notification if wiki cannot be created
+        if: always() && steps.pushwiki.outcome == 'failure'
+        uses: ./.forgejo/actions/discord-notify
+        with:
+          webhook_url: ${{ secrets.DISCORD_WEBHOOK_URL }}
+          bot_avatar_url: 'https://git.greensky.tf/Greensky/assets/raw/commit/94879d525e06a6113741d4918a8414ac015c948a/icons/exclamation.png'
+          bot_name: 'Wiki creation failure'
+          title: 'Wiki creation has failed'
+          title_url: ${{ github.server_url }}/${{ github.repository }}
+          description: |
+            The [`Wiki`](${{ github.server_url }}/${{ github.repository }}/wiki) creation failed in workflow
+
+            Please [**manually create a page**](${{ github.server_url }}/${{ github.repository }}/wiki?action=_new), then retry this workflow again
+          footer_text: 'Forgejo docs'
+          footer_icon_url: 'https://git.greensky.tf/Greensky/assets/raw/commit/1745b18f7115e22905923ac5937ccd2d1ab00be0/logos/forgejo/logo.png'
+          color: '16711680'
+
+      - name: Send webhook
+        uses: ./.forgejo/actions/discord-notify
+        with:
+          webhook_url: ${{ secrets.DISCORD_WEBHOOK_URL }}
+          # Logo from https://www.flaticon.com/free-icons/open-book
+          bot_avatar_url: "https://git.greensky.tf/Greensky/assets/raw/commit/1745b18f7115e22905923ac5937ccd2d1ab00be0/icons/wiki-magic.png"
+          bot_name: '[DOC] ${{ github.repository }}'
+          color: '3447003'
+          title: 'Documentation generated'
+          title_url: '${{ github.server_url }}/${{ github.repository }}'
+          description: |
+            The [`Wiki`](${{ github.server_url }}/${{ github.repository }}/wiki) has been updated
+          footer_text: 'Forgejo Actions'
+          footer_icon_url: 'https://git.greensky.tf/Greensky/assets/raw/commit/1745b18f7115e22905923ac5937ccd2d1ab00be0/logos/forgejo/logo.png'
