@@ -24,13 +24,14 @@ jobs:
           pacman -Syu --noconfirm curl jq
 
           curl -o sign.gpg https://git.greensky.tf/api/packages/Greensky/arch/repository.key
+          pacman-key --init
           pacman-key --add sign.gpg
           pacman-key --lsign-key 'Greensky@noreply.git.greensky.tf'
 
           {
-            echo "[greensky.git.greensky.tf]"
+            echo "[main]"
             echo "SigLevel = Required"
-            echo "Server = https://git.greensky.tf/api/packages/Greensky/arch/main/$arch"
+            echo "Server = https://git.greensky.tf/api/packages/Greensky/arch/\$repo/\$arch"
           } >> /etc/pacman.conf
 
           pacman -Sy --noconfirm docc-to-md
